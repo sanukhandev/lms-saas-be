@@ -39,10 +39,12 @@ jobs:
           server-dir: ./
           exclude: |
             **/.git*
+            .git/**
+            .gitignore
+            .gitattributes
             **/node_modules/**
             **/tests/**
             .env
             README.md
-            .github
-            .git
+            .github/**
 
