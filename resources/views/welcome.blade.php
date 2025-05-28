@@ -6,6 +6,7 @@
     <div class="flexy-center">
         <div class="button__container">
             <div class="button" id="connect">Connect</div>
+            <div class="button button--disabled" id="reload">Reload</div>
         </div>
         <div class="container" id="container">
             <svg class="computer svg-icon" id="computer" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewbox="0 0 1024 1024">
