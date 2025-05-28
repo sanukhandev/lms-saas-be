@@ -47,4 +47,7 @@ jobs:
             .env
             README.md
             .github/**
+            vendor
+            vendor/**
+
 
