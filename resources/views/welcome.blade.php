@@ -6,7 +6,6 @@
     <div class="flexy-center">
         <div class="button__container">
             <div class="button" id="connect">Connect</div>
-            <div class="button button--disabled" id="reload">Reload</div>
         </div>
         <div class="container" id="container">
             <svg class="computer svg-icon" id="computer" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewbox="0 0 1024 1024">
@@ -462,30 +461,42 @@
 
 
 <script>
-    var computer = $('#computer'),
-        response = $('#response'),
-        connect = $('#connect'),
-        reload = $('#reload'),
-        container = $('#container'),
-        containerTit = $('#container__title');
+    const computer = document.getElementById('computer');
+    const response = document.getElementById('response');
+    const connect = document.getElementById('connect');
+    const reload = document.getElementById('reload');
+    const container = document.getElementById('container');
+    const containerTit = document.getElementById('container__title');
 
-    connect.click(function() {
-        $(this).toggleClass('button--disabled');
-        reload.toggleClass('button--disabled');
-        container.addClass('container__anim');
-        container.one('webkitTtransitionEnd otransitionend msTransitionEnd transitionend', function() {
-            container.addClass('container__jump');
-            container.one('webkitAnimationEnd oanimationend msAnimationEnd animationend', function() {
-                containerTit.addClass('container__title--anim')
-            });
-        });
+    connect.addEventListener('click', function () {
+        this.classList.toggle('button--disabled');
+        reload.classList.toggle('button--disabled');
+        container.classList.add('container__anim');
+
+        const onTransitionEnd = () => {
+            container.classList.add('container__jump');
+            container.removeEventListener('transitionend', onTransitionEnd);
+            container.removeEventListener('webkitTransitionEnd', onTransitionEnd);
+
+            const onAnimationEnd = () => {
+                containerTit.classList.add('container__title--anim');
+                container.removeEventListener('animationend', onAnimationEnd);
+                container.removeEventListener('webkitAnimationEnd', onAnimationEnd);
+            };
+
+            container.addEventListener('animationend', onAnimationEnd);
+            container.addEventListener('webkitAnimationEnd', onAnimationEnd);
+        };
+
+        container.addEventListener('transitionend', onTransitionEnd);
+        container.addEventListener('webkitTransitionEnd', onTransitionEnd);
     });
 
-    reload.click(function() {
-        $(this).toggleClass('button--disabled');
-        connect.toggleClass('button--disabled');
-        container.removeClass('container__anim');
-        container.removeClass('container__jump');
-        containerTit.removeClass('container__title--anim');
+    reload.addEventListener('click', function () {
+        this.classList.toggle('button--disabled');
+        connect.classList.toggle('button--disabled');
+        container.classList.remove('container__anim', 'container__jump');
+        containerTit.classList.remove('container__title--anim');
     });
+
 </script>
