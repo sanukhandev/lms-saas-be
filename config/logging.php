@@ -18,7 +18,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => env('LOG_CHANNEL', 'stderr'),
 
     /*
     |--------------------------------------------------------------------------
@@ -125,6 +125,16 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'tenant' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/tenants/default.log'),
+            'level' => 'debug',
+        ],
+        'tenant_dynamic' => [
+            'driver' => 'custom',
+            'via' => App\Utils\TenantLogger::class,
         ],
 
     ],

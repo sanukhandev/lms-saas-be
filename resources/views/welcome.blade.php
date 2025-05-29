@@ -1,13 +1,15 @@
 
 <main>
     <header class="accessible-hide">
-        <h1>CSS 403 Error</h1>
+        <h1>DesertWhales LLC (Dubai) - Api Service</h1>
     </header>
     <div class="flexy-center">
-        <div class="button__container">
+
+        <div class="button__container accessible-hide" style="">
             <div class="button" id="connect">Connect</div>
             <div class="button button--disabled" id="reload">Reload</div>
         </div>
+
         <div class="container" id="container">
             <svg class="computer svg-icon" id="computer" xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewbox="0 0 1024 1024">
                 <path d="M864 159.872L160 160c-17.696 0-32 14.176-32 31.872v448c0 17.696 14.304 32 32 32h704c17.696 0 32-14.304 32-32v-448c0-17.696-14.304-32-32-32zM864 640H160V191.872h704V640zm64-608H96C42.976 32 0 74.944 0 128v640c0 52.928 42.816 95.808 95.68 95.936H416v38.944l-199.744 25.952C201.984 932.384 192 945.184 192 959.872c0 17.696 14.304 32 32 32h576c17.696 0 32-14.304 32-32 0-14.688-9.984-27.488-24.256-31.072L608 902.88v-38.944h320.32c52.864-.128 95.68-43.008 95.68-95.936V128c0-53.056-43.008-96-96-96zm32 736c0 17.632-14.368 32-32 32H96c-17.664 0-32-14.368-32-32V128c0-17.664 14.336-32 32-32h832c17.632 0 32 14.336 32 32v640z"></path>
@@ -22,7 +24,7 @@
                 <div class="sparks"></div>
             </div>
         </div>
-        <div class="container__title" id="container__title">Forbidden</div>
+        <div class="container__title" id="container__title">Access Forbidden DesertWhales LLC (Dubai)</div>
     </div>
 </main>
 
@@ -216,6 +218,7 @@
         -webkit-animation-name: jump3;
         animation-name: jump3;
     }
+
     .container__jump .response .sparks {
         transform: scale(2);
         opacity: 0;
@@ -500,4 +503,14 @@
         containerTit.classList.remove('container__title--anim');
     });
 
+
+    window.onload = function () {
+       setTimeout(()=>{
+           connect.click()
+       }, 1000)
+    };
+
 </script>
+
+
+
