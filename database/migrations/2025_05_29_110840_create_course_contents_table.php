@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('course_id')->constrained()->onDelete('cascade');
             $table->foreignId('parent_id')->nullable()->constrained('course_contents')->onDelete('cascade');
+            // add tenant_id if needed for multi-tenancy
+             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->enum('type', ['module', 'chapter']);
             $table->string('title');
             $table->text('description')->nullable();

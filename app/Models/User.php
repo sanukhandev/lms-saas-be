@@ -24,6 +24,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'tenant_id',
+        'role', // 'admin', 'staff', 'tutor', 'student'
     ];
 
     /**
