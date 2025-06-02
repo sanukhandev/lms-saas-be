@@ -8,6 +8,12 @@ trait LogsServiceCalls
 {
     protected function logServiceCall(string $method, array $data = []): void
     {
-        Log::info("[" . class_basename($this) . "] $method", $data);
+        Log::channel('tenant_dynamic')->info("[" . class_basename($this) . "] $method", $data);
     }
+
+    protected function logServiceErros(string $method, array $data = []): void
+    {
+        Log::channel('tenant_dynamic')->error("[" . class_basename($this) . "] $method", $data);
+    }
+
 }
