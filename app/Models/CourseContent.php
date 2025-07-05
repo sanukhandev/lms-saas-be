@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CourseContent extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'course_id',
         'parent_id',
@@ -15,7 +17,8 @@ class CourseContent extends Model
         'title',
         'description',
         'position',
-        'duration_mins'
+        'duration_mins',
+        'tenant_id'
     ];
 
     public function course():BelongsTo

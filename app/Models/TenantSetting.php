@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TenantSetting extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $fillable = [
         'tenant_id',
         'default_class_duration',

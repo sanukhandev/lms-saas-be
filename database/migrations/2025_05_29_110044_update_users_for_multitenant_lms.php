@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('tenant_id')->after('id')->constrained()->onDelete('cascade');
-            $table->enum('role', ['admin', 'staff', 'tutor', 'student'])->after('email');
+            $table->enum('role', ['admin', 'staff', 'tutor', 'student','super_admin'])->after('email');
             $table->unique(['tenant_id', 'email']);
             $table->index(['tenant_id', 'role']);
         });

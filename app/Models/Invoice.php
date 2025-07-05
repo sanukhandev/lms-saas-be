@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $fillable = [
         'tenant_id',
         'student_id',

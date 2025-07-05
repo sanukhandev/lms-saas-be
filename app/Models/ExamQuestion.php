@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExamQuestion extends Model
 {
+
     protected $fillable = [
         'exam_id',
         'question',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, BelongsToTenant;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +25,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'tenant_id',
+        'role', // 'admin', 'staff', 'tutor', 'student'
     ];
 
     /**

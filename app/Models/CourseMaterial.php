@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CourseMaterial extends Model
 {
+    use \App\Traits\BelongsToTenant;
     protected $fillable = [
         'tenant_id',
         'course_id',
