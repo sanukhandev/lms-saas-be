@@ -15,6 +15,9 @@ Route::get('/test', function () {
 // added routes
 
 Route::prefix('v1')->group(function () {
+    // Public tenant routes (no authentication required)
+    Route::get('tenants/domain/{domain}', [App\Http\Controllers\Api\TenantController::class, 'getByDomain']);
+    
     // Authentication routes (public) - no tenant middleware
     Route::group(['prefix' => 'auth'], function () {
         Route::post('register', [App\Http\Controllers\Api\AuthController::class, 'register']);
@@ -27,6 +30,11 @@ Route::prefix('v1')->group(function () {
     // Protected routes with tenant middleware
     Route::middleware(['auth:sanctum', 'tenant.access'])->group(function () {
         Route::get('user', [App\Http\Controllers\Api\AuthController::class, 'user']);
+        
+        // Tenant management routes
+        Route::get('tenants', [App\Http\Controllers\Api\TenantController::class, 'index']); // Super admin only
+        Route::get('tenants/current', [App\Http\Controllers\Api\TenantController::class, 'current']);
+        Route::put('tenants/{domain}/settings', [App\Http\Controllers\Api\TenantController::class, 'updateSettings']);
         
         // Add other protected routes here
     });
