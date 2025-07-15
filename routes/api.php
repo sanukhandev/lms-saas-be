@@ -7,11 +7,15 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+// Test route for CORS
+Route::get('/test', function () {
+    return response()->json(['message' => 'CORS test successful', 'timestamp' => now()]);
+});
 
 // added routes
 
-Route::prefix('v1')->middleware(['tenant.access'])->group(function () {
-    // Authentication routes (public)
+Route::prefix('v1')->group(function () {
+    // Authentication routes (public) - no tenant middleware
     Route::group(['prefix' => 'auth'], function () {
         Route::post('register', [App\Http\Controllers\Api\AuthController::class, 'register']);
         Route::post('login', [App\Http\Controllers\Api\AuthController::class, 'login']);
@@ -20,8 +24,8 @@ Route::prefix('v1')->middleware(['tenant.access'])->group(function () {
         Route::post('change-password', [App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware('auth:sanctum');
     });
 
-    // Protected routes
-    Route::middleware('auth:sanctum')->group(function () {
+    // Protected routes with tenant middleware
+    Route::middleware(['auth:sanctum', 'tenant.access'])->group(function () {
         Route::get('user', [App\Http\Controllers\Api\AuthController::class, 'user']);
         
         // Add other protected routes here
