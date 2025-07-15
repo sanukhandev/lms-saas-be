@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\Scopes\TenantScope;
+use Illuminate\Support\Facades\Request;
 
 trait BelongsToTenant
 {

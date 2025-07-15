@@ -15,8 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias(
             [
                 'tenant.access' => \App\Http\Middleware\EnsureTenantAccess::class,
+                'cors' => \App\Http\Middleware\Cors::class,
             ]
         );
+        
+        // Add CORS middleware to API routes
+        $middleware->api(prepend: [
+            \App\Http\Middleware\Cors::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
     })->create();

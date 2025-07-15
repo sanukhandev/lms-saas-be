@@ -11,9 +11,20 @@ Route::get('/user', function (Request $request) {
 // added routes
 
 Route::prefix('v1')->middleware(['tenant.access'])->group(function () {
-    // pre auth urls
+    // Authentication routes (public)
     Route::group(['prefix' => 'auth'], function () {
+        Route::post('register', [App\Http\Controllers\Api\AuthController::class, 'register']);
+        Route::post('login', [App\Http\Controllers\Api\AuthController::class, 'login']);
+        Route::post('logout', [App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
+        Route::post('refresh', [App\Http\Controllers\Api\AuthController::class, 'refresh'])->middleware('auth:sanctum');
+        Route::post('change-password', [App\Http\Controllers\Api\AuthController::class, 'changePassword'])->middleware('auth:sanctum');
+    });
 
+    // Protected routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('user', [App\Http\Controllers\Api\AuthController::class, 'user']);
+        
+        // Add other protected routes here
     });
 });
 
