@@ -144,7 +144,8 @@ class DashboardContentSeeder extends Seeder
         foreach ($courses as $course) {
             ClassSession::factory()->count(rand(3, 8))->create([
                 'course_id' => $course->id,
-                'instructor_id' => $tutors->random()->id,
+                'tutor_id' => $tutors->random()->id,
+                'tenant_id' => $tenant->id,
             ]);
         }
 
@@ -155,7 +156,7 @@ class DashboardContentSeeder extends Seeder
         foreach ($courses as $course) {
             $courseExams = Exam::factory()->count(rand(2, 5))->create([
                 'course_id' => $course->id,
-                'created_by' => $tutors->random()->id,
+                'tenant_id' => $tenant->id,
             ]);
             $exams = array_merge($exams, $courseExams->toArray());
         }

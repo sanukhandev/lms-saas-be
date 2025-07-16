@@ -19,58 +19,53 @@ class ClassSessionFactory extends Factory
      */
     public function definition(): array
     {
-        $startTime = $this->faker->dateTimeBetween('-1 month', '+2 months');
-        $endTime = (clone $startTime)->modify('+' . $this->faker->numberBetween(60, 180) . ' minutes');
-
-        $sessionTitles = [
-            'Introduction Session',
-            'Core Concepts Workshop',
-            'Hands-on Practice',
-            'Q&A Session',
-            'Project Review',
-            'Advanced Topics',
-            'Final Presentation',
-            'Guest Speaker Session',
-            'Lab Session',
-            'Group Discussion',
-            'Case Study Analysis',
-            'Practical Implementation',
-            'Code Review Session',
-            'Testing Workshop',
-            'Deployment Tutorial'
-        ];
+        $scheduledAt = $this->faker->dateTimeBetween('-1 month', '+2 months');
+        $duration = $this->faker->numberBetween(60, 180);
+        $statuses = ['scheduled', 'completed', 'cancelled'];
 
         return [
-            'title' => $this->faker->randomElement($sessionTitles),
-            'description' => $this->faker->paragraphs(2, true),
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'session_type' => $this->faker->randomElement(['live', 'recorded']),
-            'location' => $this->faker->randomElement(['Online', 'Room A', 'Room B', 'Lab 1', 'Conference Room']),
-            'max_participants' => $this->faker->numberBetween(10, 50),
-            'is_active' => $this->faker->boolean(85),
+            'scheduled_at' => $scheduledAt,
+            'duration_mins' => $duration,
+            'meeting_url' => $this->faker->url(),
+            'is_recorded' => $this->faker->boolean(30),
+            'recording_url' => $this->faker->boolean(20) ? $this->faker->url() : null,
+            'status' => $this->faker->randomElement($statuses),
             'course_id' => Course::factory(),
-            'instructor_id' => User::factory()->state(['role' => 'tutor']),
+            'tutor_id' => User::factory()->state(['role' => 'tutor']),
+            'content_id' => null, // Will be set if needed
+            'tenant_id' => 1, // Will be overridden in seeder
         ];
     }
 
     /**
-     * Indicate that the session is inactive.
+     * Indicate that the session is scheduled.
      */
-    public function inactive(): static
+    public function scheduled(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_active' => false,
+            'status' => 'scheduled',
         ]);
     }
 
     /**
-     * Indicate that the session is a live session.
+     * Indicate that the session is completed.
      */
-    public function live(): static
+    public function completed(): static
     {
         return $this->state(fn (array $attributes) => [
-            'session_type' => 'live',
+            'status' => 'completed',
+            'is_recorded' => true,
+            'recording_url' => $this->faker->url(),
+        ]);
+    }
+
+    /**
+     * Indicate that the session is cancelled.
+     */
+    public function cancelled(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'cancelled',
         ]);
     }
 
@@ -80,7 +75,8 @@ class ClassSessionFactory extends Factory
     public function recorded(): static
     {
         return $this->state(fn (array $attributes) => [
-            'session_type' => 'recorded',
+            'is_recorded' => true,
+            'recording_url' => $this->faker->url(),
         ]);
     }
 }

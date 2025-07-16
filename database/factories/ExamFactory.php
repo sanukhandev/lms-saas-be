@@ -37,30 +37,33 @@ class ExamFactory extends Factory
             'Performance Evaluation'
         ];
 
-        $startTime = $this->faker->dateTimeBetween('-1 month', '+2 months');
-        $endTime = (clone $startTime)->modify('+' . $this->faker->numberBetween(60, 180) . ' minutes');
-
         return [
             'title' => $this->faker->randomElement($examTitles),
-            'description' => $this->faker->paragraphs(2, true),
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'duration' => $this->faker->numberBetween(30, 180), // 30 minutes to 3 hours
-            'max_score' => $this->faker->numberBetween(50, 100),
-            'passing_score' => $this->faker->numberBetween(60, 85),
-            'is_active' => $this->faker->boolean(85),
+            'instructions' => $this->faker->paragraphs(3, true),
+            'is_published' => $this->faker->boolean(80),
             'course_id' => Course::factory(),
-            'created_by' => User::factory()->state(['role' => 'tutor']),
+            'content_id' => null, // Will be set if needed
+            'tenant_id' => 1, // Will be overridden in seeder
         ];
     }
 
     /**
-     * Indicate that the exam is inactive.
+     * Indicate that the exam is unpublished.
      */
-    public function inactive(): static
+    public function unpublished(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_active' => false,
+            'is_published' => false,
+        ]);
+    }
+
+    /**
+     * Indicate that the exam is published.
+     */
+    public function published(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_published' => true,
         ]);
     }
 
@@ -71,9 +74,7 @@ class ExamFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'title' => 'Quick Quiz - ' . $this->faker->word(),
-            'duration' => $this->faker->numberBetween(15, 45),
-            'max_score' => $this->faker->numberBetween(10, 25),
-            'passing_score' => $this->faker->numberBetween(60, 75),
+            'instructions' => 'Complete this quick quiz to test your understanding.',
         ]);
     }
 
@@ -84,9 +85,7 @@ class ExamFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'title' => 'Comprehensive Examination - ' . $this->faker->word(),
-            'duration' => $this->faker->numberBetween(120, 180),
-            'max_score' => $this->faker->numberBetween(80, 100),
-            'passing_score' => $this->faker->numberBetween(70, 85),
+            'instructions' => 'This is a comprehensive examination covering all course materials. Please read all questions carefully.',
         ]);
     }
 }
