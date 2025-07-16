@@ -26,7 +26,7 @@ class DashboardService
         $totalCourses = Course::where('tenant_id', $tenantId)->count();
         $totalEnrollments = $this->getTotalEnrollments($tenantId);
         $totalRevenue = $this->getTotalRevenue($tenantId);
-        
+
         $userGrowthRate = $this->calculateUserGrowthRate($tenantId, $totalUsers);
         $courseCompletionRate = $this->calculateCourseCompletionRate($tenantId, $totalEnrollments);
         $activeUsers = $this->getActiveUsersCount($tenantId);
