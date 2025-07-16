@@ -26,9 +26,7 @@ class DashboardContentSeeder extends Seeder
      */
     public function run(): void
     {
-        // Clear existing data (optional - comment out if you want to preserve existing data)
-        $this->command->info('Clearing existing data...');
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $this->command->info('Starting dashboard content seeding...');
         
         // Get or create demo tenant
         $tenant = Tenant::where('domain', 'demo')->first();
@@ -44,22 +42,28 @@ class DashboardContentSeeder extends Seeder
         $this->command->info('Creating users...');
         
         // Create Super Admin
-        $superAdmin = User::factory()->create([
-            'name' => 'Super Admin',
-            'email' => 'superadmin@example.com',
-            'role' => 'super_admin',
-            'tenant_id' => null,
-            'email_verified_at' => now(),
-        ]);
+        $superAdmin = User::where('email', 'superadmin@example.com')->first();
+        if (!$superAdmin) {
+            $superAdmin = User::factory()->create([
+                'name' => 'Super Admin',
+                'email' => 'superadmin@example.com',
+                'role' => 'super_admin',
+                'tenant_id' => null,
+                'email_verified_at' => now(),
+            ]);
+        }
 
         // Create Tenant Admin
-        $tenantAdmin = User::factory()->create([
-            'name' => 'Tenant Admin',
-            'email' => 'admin@demo.com',
-            'role' => 'admin',
-            'tenant_id' => $tenant->id,
-            'email_verified_at' => now(),
-        ]);
+        $tenantAdmin = User::where('email', 'admin@demo.com')->first();
+        if (!$tenantAdmin) {
+            $tenantAdmin = User::factory()->create([
+                'name' => 'Tenant Admin',
+                'email' => 'admin@demo.com',
+                'role' => 'admin',
+                'tenant_id' => $tenant->id,
+                'email_verified_at' => now(),
+            ]);
+        }
 
         // Create Staff users
         $staff = User::factory()->count(3)->create([
@@ -261,8 +265,6 @@ class DashboardContentSeeder extends Seeder
                 ]);
             }
         }
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->command->info('Dashboard content seeding completed!');
         $this->command->info('Created:');
