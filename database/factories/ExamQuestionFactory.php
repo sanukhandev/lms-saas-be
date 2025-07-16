@@ -18,9 +18,6 @@ class ExamQuestionFactory extends Factory
      */
     public function definition(): array
     {
-        $questionTypes = ['multiple_choice', 'true_false', 'short_answer', 'essay'];
-        $type = $this->faker->randomElement($questionTypes);
-
         $questions = [
             'What is the primary purpose of this concept?',
             'Which of the following best describes the functionality?',
@@ -39,61 +36,20 @@ class ExamQuestionFactory extends Factory
             'What are the scalability concerns with this approach?'
         ];
 
+        $options = [
+            'A' => $this->faker->sentence(),
+            'B' => $this->faker->sentence(),
+            'C' => $this->faker->sentence(),
+            'D' => $this->faker->sentence(),
+        ];
+
         return [
             'question' => $this->faker->randomElement($questions),
-            'question_type' => $type,
-            'options' => $this->generateOptions($type),
-            'correct_answer' => $this->generateCorrectAnswer($type),
-            'points' => $this->faker->numberBetween(1, 10),
-            'order' => $this->faker->numberBetween(1, 50),
-            'explanation' => $this->faker->paragraph(),
+            'options' => $options,
+            'correct_answer' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
+            'marks' => $this->faker->numberBetween(1, 5),
             'exam_id' => Exam::factory(),
         ];
-    }
-
-    /**
-     * Generate options based on question type.
-     */
-    private function generateOptions(string $type): array
-    {
-        switch ($type) {
-            case 'multiple_choice':
-                return [
-                    'A' => $this->faker->sentence(),
-                    'B' => $this->faker->sentence(),
-                    'C' => $this->faker->sentence(),
-                    'D' => $this->faker->sentence(),
-                ];
-            case 'true_false':
-                return [
-                    'A' => 'True',
-                    'B' => 'False',
-                ];
-            case 'short_answer':
-            case 'essay':
-                return [];
-            default:
-                return [];
-        }
-    }
-
-    /**
-     * Generate correct answer based on question type.
-     */
-    private function generateCorrectAnswer(string $type): string
-    {
-        switch ($type) {
-            case 'multiple_choice':
-                return $this->faker->randomElement(['A', 'B', 'C', 'D']);
-            case 'true_false':
-                return $this->faker->randomElement(['A', 'B']);
-            case 'short_answer':
-                return $this->faker->sentence();
-            case 'essay':
-                return $this->faker->paragraph();
-            default:
-                return 'A';
-        }
     }
 
     /**
@@ -102,7 +58,6 @@ class ExamQuestionFactory extends Factory
     public function multipleChoice(): static
     {
         return $this->state(fn (array $attributes) => [
-            'question_type' => 'multiple_choice',
             'options' => [
                 'A' => $this->faker->sentence(),
                 'B' => $this->faker->sentence(),
@@ -119,7 +74,6 @@ class ExamQuestionFactory extends Factory
     public function trueFalse(): static
     {
         return $this->state(fn (array $attributes) => [
-            'question_type' => 'true_false',
             'options' => [
                 'A' => 'True',
                 'B' => 'False',
@@ -129,15 +83,12 @@ class ExamQuestionFactory extends Factory
     }
 
     /**
-     * Create an essay question.
+     * Create a high-value question.
      */
-    public function essay(): static
+    public function highValue(): static
     {
         return $this->state(fn (array $attributes) => [
-            'question_type' => 'essay',
-            'options' => [],
-            'correct_answer' => $this->faker->paragraph(),
-            'points' => $this->faker->numberBetween(10, 25),
+            'marks' => $this->faker->numberBetween(5, 10),
         ]);
     }
 }

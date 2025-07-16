@@ -19,21 +19,12 @@ class ExamResultFactory extends Factory
      */
     public function definition(): array
     {
-        $maxScore = $this->faker->numberBetween(50, 100);
-        $score = $this->faker->numberBetween(0, $maxScore);
-        $passingScore = $this->faker->numberBetween(60, 85);
-
-        $startTime = $this->faker->dateTimeBetween('-1 month', 'now');
-        $endTime = (clone $startTime)->modify('+' . $this->faker->numberBetween(30, 180) . ' minutes');
+        $score = $this->faker->numberBetween(0, 100);
+        $isPassed = $score >= 60; // Assume 60% is passing
 
         return [
             'score' => $score,
-            'max_score' => $maxScore,
-            'passing_score' => $passingScore,
-            'passed' => $score >= $passingScore,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'time_taken' => $this->faker->numberBetween(1800, 10800), // 30 minutes to 3 hours in seconds
+            'is_passed' => $isPassed,
             'answers' => $this->generateAnswers(),
             'exam_id' => Exam::factory(),
             'student_id' => User::factory()->state(['role' => 'student']),
@@ -46,15 +37,10 @@ class ExamResultFactory extends Factory
     private function generateAnswers(): array
     {
         $answers = [];
-        $questionCount = $this->faker->numberBetween(5, 20);
+        $questionCount = $this->faker->numberBetween(5, 15);
 
         for ($i = 1; $i <= $questionCount; $i++) {
-            $answers["question_{$i}"] = [
-                'answer' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
-                'is_correct' => $this->faker->boolean(70), // 70% chance of being correct
-                'points_earned' => $this->faker->numberBetween(0, 5),
-                'time_spent' => $this->faker->numberBetween(30, 300), // 30 seconds to 5 minutes
-            ];
+            $answers["question_{$i}"] = $this->faker->randomElement(['A', 'B', 'C', 'D']);
         }
 
         return $answers;
@@ -65,18 +51,10 @@ class ExamResultFactory extends Factory
      */
     public function passing(): static
     {
-        return $this->state(function (array $attributes) {
-            $maxScore = $this->faker->numberBetween(50, 100);
-            $passingScore = $this->faker->numberBetween(60, 85);
-            $score = $this->faker->numberBetween($passingScore, $maxScore);
-
-            return [
-                'score' => $score,
-                'max_score' => $maxScore,
-                'passing_score' => $passingScore,
-                'passed' => true,
-            ];
-        });
+        return $this->state(fn (array $attributes) => [
+            'score' => $this->faker->numberBetween(60, 100),
+            'is_passed' => true,
+        ]);
     }
 
     /**
@@ -84,18 +62,10 @@ class ExamResultFactory extends Factory
      */
     public function failing(): static
     {
-        return $this->state(function (array $attributes) {
-            $maxScore = $this->faker->numberBetween(50, 100);
-            $passingScore = $this->faker->numberBetween(60, 85);
-            $score = $this->faker->numberBetween(0, $passingScore - 1);
-
-            return [
-                'score' => $score,
-                'max_score' => $maxScore,
-                'passing_score' => $passingScore,
-                'passed' => false,
-            ];
-        });
+        return $this->state(fn (array $attributes) => [
+            'score' => $this->faker->numberBetween(0, 59),
+            'is_passed' => false,
+        ]);
     }
 
     /**
@@ -103,15 +73,9 @@ class ExamResultFactory extends Factory
      */
     public function highScore(): static
     {
-        return $this->state(function (array $attributes) {
-            $maxScore = $this->faker->numberBetween(80, 100);
-            $score = $this->faker->numberBetween(85, $maxScore);
-
-            return [
-                'score' => $score,
-                'max_score' => $maxScore,
-                'passed' => true,
-            ];
-        });
+        return $this->state(fn (array $attributes) => [
+            'score' => $this->faker->numberBetween(85, 100),
+            'is_passed' => true,
+        ]);
     }
 }
