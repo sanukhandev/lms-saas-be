@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CoursePurchase extends Model
 {
-    use \App\Traits\BelongsToTenant;
+    use \App\Traits\BelongsToTenant, HasFactory;
     protected $fillable = [
         'tenant_id',
         'student_id',
