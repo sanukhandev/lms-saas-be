@@ -18,7 +18,7 @@ class CourseContentFactory extends Factory
      */
     public function definition(): array
     {
-        $contentTypes = ['video', 'text', 'quiz', 'assignment', 'resource'];
+        $types = ['module', 'chapter'];
         $titles = [
             'Introduction and Overview',
             'Getting Started',
@@ -40,88 +40,42 @@ class CourseContentFactory extends Factory
         return [
             'title' => $this->faker->randomElement($titles),
             'description' => $this->faker->paragraphs(2, true),
-            'content_type' => $this->faker->randomElement($contentTypes),
-            'content_data' => $this->generateContentData(),
-            'order' => $this->faker->numberBetween(1, 20),
-            'is_published' => $this->faker->boolean(85), // 85% chance of being published
+            'type' => $this->faker->randomElement($types),
+            'position' => $this->faker->numberBetween(1, 20),
+            'duration_mins' => $this->faker->numberBetween(30, 120),
             'course_id' => Course::factory(),
+            'parent_id' => null, // Will be set when creating sub-contents
+            'tenant_id' => 1, // Will be overridden in seeder
         ];
     }
 
     /**
-     * Generate content data based on type.
+     * Indicate that the content is a module.
      */
-    private function generateContentData(): array
-    {
-        $contentTypes = ['video', 'text', 'quiz', 'assignment', 'resource'];
-        $type = $this->faker->randomElement($contentTypes);
-
-        switch ($type) {
-            case 'video':
-                return [
-                    'video_url' => $this->faker->url(),
-                    'duration' => $this->faker->numberBetween(300, 3600), // 5 minutes to 1 hour
-                    'thumbnail' => $this->faker->imageUrl(640, 360, 'technology'),
-                ];
-            case 'text':
-                return [
-                    'content' => $this->faker->paragraphs(5, true),
-                    'reading_time' => $this->faker->numberBetween(5, 30), // 5-30 minutes
-                ];
-            case 'quiz':
-                return [
-                    'questions' => $this->generateQuizQuestions(),
-                    'passing_score' => $this->faker->numberBetween(60, 90),
-                ];
-            case 'assignment':
-                return [
-                    'instructions' => $this->faker->paragraphs(3, true),
-                    'due_date' => $this->faker->dateTimeBetween('+1 week', '+1 month'),
-                    'max_points' => $this->faker->numberBetween(50, 100),
-                ];
-            case 'resource':
-                return [
-                    'file_url' => $this->faker->url(),
-                    'file_type' => $this->faker->randomElement(['pdf', 'doc', 'zip', 'ppt']),
-                    'file_size' => $this->faker->numberBetween(1024, 10485760), // 1KB to 10MB
-                ];
-            default:
-                return [];
-        }
-    }
-
-    /**
-     * Generate quiz questions.
-     */
-    private function generateQuizQuestions(): array
-    {
-        $questions = [];
-        $questionCount = $this->faker->numberBetween(3, 10);
-
-        for ($i = 0; $i < $questionCount; $i++) {
-            $questions[] = [
-                'question' => $this->faker->sentence() . '?',
-                'options' => [
-                    $this->faker->sentence(),
-                    $this->faker->sentence(),
-                    $this->faker->sentence(),
-                    $this->faker->sentence(),
-                ],
-                'correct_answer' => $this->faker->numberBetween(0, 3),
-                'points' => $this->faker->numberBetween(1, 5),
-            ];
-        }
-
-        return $questions;
-    }
-
-    /**
-     * Indicate that the content is unpublished.
-     */
-    public function unpublished(): static
+    public function module(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_published' => false,
+            'type' => 'module',
+        ]);
+    }
+
+    /**
+     * Indicate that the content is a chapter.
+     */
+    public function chapter(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'chapter',
+        ]);
+    }
+
+    /**
+     * Indicate that the content has a parent.
+     */
+    public function withParent(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'parent_id' => CourseContent::factory()->create()->id,
         ]);
     }
 }

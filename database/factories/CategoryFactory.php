@@ -19,7 +19,7 @@ class CategoryFactory extends Factory
      */
     public function definition(): array
     {
-        $name = $this->faker->randomElement([
+        $categoryNames = [
             'Programming',
             'Web Development',
             'Data Science',
@@ -39,12 +39,20 @@ class CategoryFactory extends Factory
             'Healthcare',
             'Education',
             'Art & Design',
-            'Photography'
-        ]);
+            'Photography',
+            'Video Production',
+            'Game Development',
+            'Quality Assurance',
+            'Network Security',
+            'Blockchain Technology'
+        ];
+
+        $name = $this->faker->randomElement($categoryNames);
+        $slug = Str::slug($name) . '-' . $this->faker->unique()->numberBetween(1, 1000);
 
         return [
-            'name' => $name,
-            'slug' => Str::slug($name),
+            'name' => $name . ' ' . $this->faker->numberBetween(1, 100),
+            'slug' => $slug,
             'parent_id' => null, // Will be set when creating subcategories
             'tenant_id' => Tenant::factory(),
         ];

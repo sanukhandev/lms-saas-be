@@ -42,7 +42,7 @@ class CourseFactory extends Factory
             'Project Management Fundamentals'
         ];
 
-        $levels = ['beginner', 'intermediate', 'advanced'];
+        $levels = ['course', 'module', 'chapter'];
 
         return [
             'title' => $this->faker->randomElement($titles),
@@ -65,32 +65,32 @@ class CourseFactory extends Factory
     }
 
     /**
-     * Indicate that the course is for beginners.
+     * Indicate that the course is for course level.
      */
-    public function beginner(): static
+    public function course(): static
     {
         return $this->state(fn (array $attributes) => [
-            'schedule_level' => 'beginner',
+            'schedule_level' => 'course',
         ]);
     }
 
     /**
-     * Indicate that the course is intermediate level.
+     * Indicate that the course is module level.
      */
-    public function intermediate(): static
+    public function module(): static
     {
         return $this->state(fn (array $attributes) => [
-            'schedule_level' => 'intermediate',
+            'schedule_level' => 'module',
         ]);
     }
 
     /**
-     * Indicate that the course is advanced level.
+     * Indicate that the course is chapter level.
      */
-    public function advanced(): static
+    public function chapter(): static
     {
         return $this->state(fn (array $attributes) => [
-            'schedule_level' => 'advanced',
+            'schedule_level' => 'chapter',
         ]);
     }
 }

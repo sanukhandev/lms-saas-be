@@ -88,19 +88,33 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating categories...');
         
-        // Create main categories
-        $categories = Category::factory()->count(10)->create([
-            'tenant_id' => $tenant->id,
-        ]);
+        // Create main categories only if they don't exist
+        $existingCategories = Category::where('tenant_id', $tenant->id)
+            ->whereNull('parent_id')
+            ->count();
+            
+        if ($existingCategories < 10) {
+            $categories = Category::factory()->count(10 - $existingCategories)->create([
+                'tenant_id' => $tenant->id,
+            ]);
+        } else {
+            $categories = Category::where('tenant_id', $tenant->id)
+                ->whereNull('parent_id')
+                ->take(10)
+                ->get();
+        }
 
         // Create subcategories
         $subcategories = [];
         foreach ($categories->take(5) as $category) {
-            $subs = Category::factory()->count(rand(2, 4))->create([
-                'tenant_id' => $tenant->id,
-                'parent_id' => $category->id,
-            ]);
-            $subcategories = array_merge($subcategories, $subs->toArray());
+            $existingSubs = Category::where('parent_id', $category->id)->count();
+            if ($existingSubs < 3) {
+                $subs = Category::factory()->count(3 - $existingSubs)->create([
+                    'tenant_id' => $tenant->id,
+                    'parent_id' => $category->id,
+                ]);
+                $subcategories = array_merge($subcategories, $subs->toArray());
+            }
         }
 
         $this->command->info('Creating courses...');
@@ -120,6 +134,7 @@ class DashboardContentSeeder extends Seeder
         foreach ($courses as $course) {
             CourseContent::factory()->count(rand(5, 15))->create([
                 'course_id' => $course->id,
+                'tenant_id' => $tenant->id,
             ]);
         }
 
