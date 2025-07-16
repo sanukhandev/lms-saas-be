@@ -233,7 +233,6 @@ class DashboardContentSeeder extends Seeder
         // Create some global notifications
         Notification::factory()->count(5)->create([
             'user_id' => $tenantAdmin->id,
-            'type' => 'system_announcement',
             'tenant_id' => $tenant->id,
         ]);
 
@@ -265,7 +264,7 @@ class DashboardContentSeeder extends Seeder
                     Feedback::factory()->create([
                         'course_id' => $course->id,
                         'student_id' => $courseStudents->random()->id,
-                        'responded_by' => $tutors->random()->id,
+                        'tutor_id' => $tutors->random()->id,
                         'tenant_id' => $tenant->id,
                     ]);
                 }
@@ -282,7 +281,6 @@ class DashboardContentSeeder extends Seeder
                 Certificate::factory()->create([
                     'course_id' => $course->id,
                     'student_id' => $student->id,
-                    'issued_by' => $tutors->random()->id,
                     'tenant_id' => $tenant->id,
                 ]);
             }
