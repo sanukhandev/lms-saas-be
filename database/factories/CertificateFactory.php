@@ -30,6 +30,7 @@ class CertificateFactory extends Factory
             'course_id' => Course::factory(),
             'student_id' => User::factory()->state(['role' => 'student']),
             'issued_by' => User::factory()->state(['role' => 'tutor']),
+            'tenant_id' => 1, // Will be overridden in seeder
         ];
     }
 

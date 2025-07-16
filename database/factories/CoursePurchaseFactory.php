@@ -33,6 +33,7 @@ class CoursePurchaseFactory extends Factory
             'payment_data' => $this->generatePaymentData(),
             'course_id' => Course::factory(),
             'student_id' => User::factory()->state(['role' => 'student']),
+            'tenant_id' => 1, // Will be overridden in seeder
         ];
     }
 

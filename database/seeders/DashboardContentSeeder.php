@@ -204,15 +204,16 @@ class DashboardContentSeeder extends Seeder
         
         // Create student progress
         foreach ($courses as $course) {
-            $courseStudents = $course->users()->where('role', 'student')->get();
+            $courseStudents = $course->users()->wherePivot('role', 'student')->get();
             $courseContent = $course->contents;
             
             foreach ($courseStudents as $student) {
                 foreach ($courseContent as $content) {
                     StudentProgress::factory()->create([
-                        'student_id' => $student->id,
+                        'user_id' => $student->id,
                         'course_id' => $course->id,
                         'content_id' => $content->id,
+                        'tenant_id' => $tenant->id,
                     ]);
                 }
             }
@@ -225,6 +226,7 @@ class DashboardContentSeeder extends Seeder
         foreach ($allUsers as $user) {
             Notification::factory()->count(rand(3, 10))->create([
                 'user_id' => $user->id,
+                'tenant_id' => $tenant->id,
             ]);
         }
 
@@ -232,6 +234,7 @@ class DashboardContentSeeder extends Seeder
         Notification::factory()->count(5)->create([
             'user_id' => $tenantAdmin->id,
             'type' => 'system_announcement',
+            'tenant_id' => $tenant->id,
         ]);
 
         $this->command->info('Creating course purchases...');
@@ -245,6 +248,7 @@ class DashboardContentSeeder extends Seeder
                 CoursePurchase::factory()->create([
                     'course_id' => $course->id,
                     'student_id' => $student->id,
+                    'tenant_id' => $tenant->id,
                 ]);
             }
         }
@@ -254,7 +258,7 @@ class DashboardContentSeeder extends Seeder
         // Create feedback for courses
         foreach ($courses as $course) {
             $feedbackCount = rand(3, 15);
-            $courseStudents = $course->users()->where('role', 'student')->get();
+            $courseStudents = $course->users()->wherePivot('role', 'student')->get();
             
             if ($courseStudents->count() > 0) {
                 for ($i = 0; $i < $feedbackCount; $i++) {
@@ -262,6 +266,7 @@ class DashboardContentSeeder extends Seeder
                         'course_id' => $course->id,
                         'student_id' => $courseStudents->random()->id,
                         'responded_by' => $tutors->random()->id,
+                        'tenant_id' => $tenant->id,
                     ]);
                 }
             }
@@ -271,13 +276,14 @@ class DashboardContentSeeder extends Seeder
         
         // Create certificates for completed courses
         foreach ($courses as $course) {
-            $completedStudents = $course->users()->where('role', 'student')->get()->random(rand(2, 8));
+            $completedStudents = $course->users()->wherePivot('role', 'student')->get()->random(rand(2, 8));
             
             foreach ($completedStudents as $student) {
                 Certificate::factory()->create([
                     'course_id' => $course->id,
                     'student_id' => $student->id,
                     'issued_by' => $tutors->random()->id,
+                    'tenant_id' => $tenant->id,
                 ]);
             }
         }

@@ -29,6 +29,7 @@ class NotificationFactory extends Factory
             'is_read' => $this->faker->boolean(30), // 30% chance of being read
             'read_at' => $this->faker->boolean(30) ? $this->faker->dateTimeBetween('-1 week', 'now') : null,
             'user_id' => User::factory(),
+            'tenant_id' => 1, // Will be overridden in seeder
             'created_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
         ];
     }

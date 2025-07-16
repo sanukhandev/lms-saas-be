@@ -75,6 +75,7 @@ class FeedbackFactory extends Factory
             'course_id' => Course::factory(),
             'student_id' => User::factory()->state(['role' => 'student']),
             'responded_by' => $this->faker->boolean(30) ? User::factory()->state(['role' => 'tutor']) : null,
+            'tenant_id' => 1, // Will be overridden in seeder
         ];
     }
 
