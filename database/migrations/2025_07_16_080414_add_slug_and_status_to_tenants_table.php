@@ -13,8 +13,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->string('slug')->nullable()->after('name');
-            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active')->after('settings');
+            // Only add columns if they don't exist
+            if (!Schema::hasColumn('tenants', 'slug')) {
+                $table->string('slug')->nullable()->after('name');
+            }
+            if (!Schema::hasColumn('tenants', 'status')) {
+                $table->enum('status', ['active', 'inactive', 'suspended'])->default('active')->after('settings');
+            }
         });
 
         // Update existing tenants to have slugs (SQLite compatible)
@@ -25,10 +30,13 @@ return new class extends Migration
                 ->update(['slug' => 'tenant-' . $tenant->id]);
         }
 
-        // Now make slug unique
-        Schema::table('tenants', function (Blueprint $table) {
-            $table->unique('slug');
-        });
+        // Check if unique constraint exists before adding it
+        $indexes = DB::select('SHOW INDEX FROM tenants WHERE Key_name = ?', ['tenants_slug_unique']);
+        if (empty($indexes)) {
+            Schema::table('tenants', function (Blueprint $table) {
+                $table->unique('slug');
+            });
+        }
     }
 
     /**
@@ -37,7 +45,20 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->dropColumn(['slug', 'status']);
+            // Drop unique constraint if it exists
+            try {
+                $table->dropUnique(['slug']);
+            } catch (Exception $e) {
+                // Ignore if constraint doesn't exist
+            }
+
+            // Drop columns if they exist
+            if (Schema::hasColumn('tenants', 'slug')) {
+                $table->dropColumn('slug');
+            }
+            if (Schema::hasColumn('tenants', 'status')) {
+                $table->dropColumn('status');
+            }
         });
     }
 };
