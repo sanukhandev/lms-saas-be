@@ -37,7 +37,6 @@ class TenantController extends Controller
                 data: ['tenant' => $tenantData],
                 message: 'Tenant retrieved successfully'
             );
-
         } catch (\Exception $e) {
             Log::error('Failed to retrieve tenant by domain', [
                 'domain' => $domain,
@@ -71,7 +70,6 @@ class TenantController extends Controller
                 data: ['tenants' => $tenants],
                 message: 'Tenants retrieved successfully'
             );
-
         } catch (\Exception $e) {
             Log::error('Failed to retrieve tenants', [
                 'user_id' => $request->user()->id,
@@ -118,7 +116,6 @@ class TenantController extends Controller
                 data: ['tenant' => $tenant],
                 message: 'Current tenant retrieved successfully'
             );
-
         } catch (\Exception $e) {
             Log::error('Failed to retrieve current tenant', [
                 'user_id' => $request->user()->id,
@@ -163,7 +160,6 @@ class TenantController extends Controller
                 data: ['tenant' => $updatedTenant],
                 message: 'Tenant settings updated successfully'
             );
-
         } catch (\Exception $e) {
             Log::error('Failed to update tenant settings', [
                 'domain' => $domain,

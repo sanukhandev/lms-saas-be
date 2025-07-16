@@ -62,4 +62,9 @@ trait ApiResponseTrait
     {
         return $this->errorResponse($message, 401);
     }
+
+    protected function forbiddenResponse(string $message = 'Forbidden'): JsonResponse
+    {
+        return $this->errorResponse($message, 403);
+    }
 }
