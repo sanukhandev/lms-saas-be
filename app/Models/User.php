@@ -75,4 +75,9 @@ class User extends Authenticatable
             ->withPivot('attendance_status', 'joined_at', 'left_at', 'location')
             ->withTimestamps();
     }
+
+    public function studentProgress(): HasMany
+    {
+        return $this->hasMany(StudentProgress::class);
+    }
 }

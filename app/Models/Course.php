@@ -49,4 +49,9 @@ class Course extends Model
     {
         return $this->hasMany(Exam::class);
     }
+
+    public function studentProgress(): HasMany
+    {
+        return $this->hasMany(StudentProgress::class);
+    }
 }

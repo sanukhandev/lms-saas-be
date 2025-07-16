@@ -10,23 +10,31 @@ class StudentProgress extends Model
     use \App\Traits\BelongsToTenant;
     protected $fillable = [
         'tenant_id',
-        'student_id',
+        'user_id',
         'course_id',
         'content_id',
         'status',
-        'progress_percent',
+        'completion_percentage',
+        'time_spent_mins',
+        'last_accessed',
         'started_at',
         'completed_at'
     ];
 
     protected $casts = [
+        'last_accessed' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 
     public function student():BelongsTo
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function user():BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function content():BelongsTo

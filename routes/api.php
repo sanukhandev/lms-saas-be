@@ -52,13 +52,69 @@ Route::prefix('v1')->group(function () {
 
             // Security settings
             Route::get('security', [App\Http\Controllers\Api\TenantSettingsController::class, 'getSecuritySettings']);
-            Route::put('security', [App\Http\Controllers\Api\TenantSettingsController::class, 'updateSecuritySettings']);
+            Route::put('security', [App\Http\Controllers\Api\TenantSettingsController::class, 'updateSecuritySettings']);        // Theme settings
+        Route::get('theme', [App\Http\Controllers\Api\TenantSettingsController::class, 'getThemeSettings']);
+        Route::put('theme', [App\Http\Controllers\Api\TenantSettingsController::class, 'updateThemeSettings']);
+    });
 
-            // Theme settings
-            Route::get('theme', [App\Http\Controllers\Api\TenantSettingsController::class, 'getThemeSettings']);
-            Route::put('theme', [App\Http\Controllers\Api\TenantSettingsController::class, 'updateThemeSettings']);
-        });
+    // Dashboard routes
+    Route::get('dashboard', [App\Http\Controllers\Api\DashboardController::class, 'index']);
+    Route::get('dashboard/chart-data', [App\Http\Controllers\Api\DashboardController::class, 'getChartData']);
 
-        // Add other protected routes here
+    // Course Management Routes
+    Route::prefix('courses')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\CourseController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\CourseController::class, 'store']);
+        Route::get('/statistics', [App\Http\Controllers\Api\CourseController::class, 'statistics']);
+        Route::get('/{course}', [App\Http\Controllers\Api\CourseController::class, 'show']);
+        Route::put('/{course}', [App\Http\Controllers\Api\CourseController::class, 'update']);
+        Route::delete('/{course}', [App\Http\Controllers\Api\CourseController::class, 'destroy']);
+        Route::post('/{course}/enroll', [App\Http\Controllers\Api\CourseController::class, 'enrollStudents']);
+        Route::get('/{course}/students', [App\Http\Controllers\Api\CourseController::class, 'getEnrolledStudents']);
+        
+        // Course Content Routes
+        Route::get('/{course}/content', [App\Http\Controllers\Api\CourseContentController::class, 'index']);
+        Route::post('/{course}/content', [App\Http\Controllers\Api\CourseContentController::class, 'store']);
+        Route::get('/{course}/content/tree', [App\Http\Controllers\Api\CourseContentController::class, 'tree']);
+        Route::post('/{course}/content/reorder', [App\Http\Controllers\Api\CourseContentController::class, 'reorder']);
+        Route::get('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'show']);
+        Route::put('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'update']);
+        Route::delete('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'destroy']);
+    });
+
+    // Category Management Routes
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\CategoryController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\CategoryController::class, 'store']);
+        Route::get('/tree', [App\Http\Controllers\Api\CategoryController::class, 'tree']);
+        Route::get('/dropdown', [App\Http\Controllers\Api\CategoryController::class, 'dropdown']);
+        Route::get('/{category}', [App\Http\Controllers\Api\CategoryController::class, 'show']);
+        Route::put('/{category}', [App\Http\Controllers\Api\CategoryController::class, 'update']);
+        Route::delete('/{category}', [App\Http\Controllers\Api\CategoryController::class, 'destroy']);
+    });
+
+    // Enrollment Management Routes
+    Route::prefix('enrollments')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\EnrollmentController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\EnrollmentController::class, 'store']);
+        Route::post('/bulk', [App\Http\Controllers\Api\EnrollmentController::class, 'bulkEnroll']);
+        Route::delete('/', [App\Http\Controllers\Api\EnrollmentController::class, 'destroy']);
+        Route::get('/statistics', [App\Http\Controllers\Api\EnrollmentController::class, 'statistics']);
+        Route::get('/student/{student}/history', [App\Http\Controllers\Api\EnrollmentController::class, 'studentHistory']);
+    });
+
+    // User Management Routes
+    Route::prefix('users')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\UserController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\UserController::class, 'store']);
+        Route::get('/statistics', [App\Http\Controllers\Api\UserController::class, 'statistics']);
+        Route::post('/bulk-import', [App\Http\Controllers\Api\UserController::class, 'bulkImport']);
+        Route::get('/role/{role}', [App\Http\Controllers\Api\UserController::class, 'getByRole']);
+        Route::get('/{user}', [App\Http\Controllers\Api\UserController::class, 'show']);
+        Route::put('/{user}', [App\Http\Controllers\Api\UserController::class, 'update']);
+        Route::delete('/{user}', [App\Http\Controllers\Api\UserController::class, 'destroy']);
+    });
+
+    // Add other protected routes here
     });
 });
