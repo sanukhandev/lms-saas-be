@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Tenant extends Model
 {
+    use HasFactory;
 
-    protected $fillable = ['name', 'domain', 'settings'];
+    protected $fillable = ['name', 'domain', 'settings', 'slug', 'status'];
 
     protected $casts = [
         'settings' => 'array'
@@ -29,4 +31,3 @@ class Tenant extends Model
         return $this->hasMany(Invoice::class);
     }
 }
-
