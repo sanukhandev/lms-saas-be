@@ -75,6 +75,18 @@ Route::prefix('v1')->group(function () {
         Route::get('dashboard/users/activity', [App\Http\Controllers\Api\DashboardController::class, 'getUserActivity']);
         Route::get('dashboard/payments', [App\Http\Controllers\Api\DashboardController::class, 'getPayments']);
 
+        // Analytics routes
+        Route::prefix('analytics')->group(function () {
+            Route::get('overview', [App\Http\Controllers\Api\AnalyticsController::class, 'overview']);
+            Route::get('engagement', [App\Http\Controllers\Api\AnalyticsController::class, 'getEngagementMetrics']);
+            Route::get('performance', [App\Http\Controllers\Api\AnalyticsController::class, 'getPerformanceMetrics']);
+            Route::get('trends', [App\Http\Controllers\Api\AnalyticsController::class, 'getTrendAnalysis']);
+            Route::get('user-behavior', [App\Http\Controllers\Api\AnalyticsController::class, 'getUserBehaviorAnalytics']);
+            Route::get('course-analytics', [App\Http\Controllers\Api\AnalyticsController::class, 'getCourseAnalytics']);
+            Route::get('revenue-analytics', [App\Http\Controllers\Api\AnalyticsController::class, 'getRevenueAnalytics']);
+            Route::get('retention', [App\Http\Controllers\Api\AnalyticsController::class, 'getRetentionMetrics']);
+        });
+
         // Course Management Routes
         Route::prefix('courses')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\CourseController::class, 'index']);

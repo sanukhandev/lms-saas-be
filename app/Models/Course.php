@@ -55,4 +55,9 @@ class Course extends Model
     {
         return $this->hasMany(StudentProgress::class);
     }
+
+    public function students(): BelongsToMany
+    {
+        return $this->users()->wherePivot('role', 'student');
+    }
 }
