@@ -190,12 +190,15 @@ class DashboardController extends Controller
             $tenantId = $this->getTenantId();
             $page = $request->input('page', 1);
             $perPage = $request->input('per_page', 15);
+            $search = $request->input('search');
+            $role = $request->input('role');
+            $status = $request->input('status');
 
-            $users = $this->dashboardService->getUserProgress($tenantId, $page, $perPage);
+            $users = $this->dashboardService->getUsersForManagement($tenantId, $page, $perPage, $search, $role, $status);
 
             return $this->successPaginated(
                 $users,
-                'User progress retrieved successfully'
+                'Users retrieved successfully'
             );
         } catch (\Exception $e) {
             Log::error('Dashboard users error', [
@@ -205,7 +208,65 @@ class DashboardController extends Controller
             ]);
 
             return $this->errorResponse(
-                message: 'Failed to retrieve user progress',
+                message: 'Failed to retrieve users',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Get user statistics for dashboard
+     */
+    public function getUserStats(DashboardRequest $request): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            $stats = $this->dashboardService->getUserStats($tenantId);
+
+            return $this->successResponse(
+                data: (array) $stats,
+                message: 'User statistics retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Dashboard user stats error', [
+                'error' => $e->getMessage(),
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve user statistics',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Get user activity feed
+     */
+    public function getUserActivity(DashboardRequest $request): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 10);
+            $userId = $request->input('user_id');
+
+            $activities = $this->dashboardService->getUserActivityFeed($tenantId, $page, $perPage, $userId);
+
+            return $this->successPaginated(
+                $activities,
+                'User activity retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Dashboard user activity error', [
+                'error' => $e->getMessage(),
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve user activity',
                 code: 500
             );
         }

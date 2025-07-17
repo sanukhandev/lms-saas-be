@@ -71,6 +71,8 @@ Route::prefix('v1')->group(function () {
         Route::get('dashboard/activity', [App\Http\Controllers\Api\DashboardController::class, 'getActivity']);
         Route::get('dashboard/courses', [App\Http\Controllers\Api\DashboardController::class, 'getCourses']);
         Route::get('dashboard/users', [App\Http\Controllers\Api\DashboardController::class, 'getUsers']);
+        Route::get('dashboard/users/stats', [App\Http\Controllers\Api\DashboardController::class, 'getUserStats']);
+        Route::get('dashboard/users/activity', [App\Http\Controllers\Api\DashboardController::class, 'getUserActivity']);
         Route::get('dashboard/payments', [App\Http\Controllers\Api\DashboardController::class, 'getPayments']);
 
         // Course Management Routes
