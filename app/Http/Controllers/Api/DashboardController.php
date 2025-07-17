@@ -294,7 +294,7 @@ class DashboardController extends Controller
             // Get all data concurrently
             $stats = $this->dashboardService->getDashboardStats($tenantId);
             $chartData = $this->dashboardService->getChartData($tenantId);
-            $activities = $this->dashboardService->getRecentActivities($tenantId, 5); // Only 5 for overview
+            $activities = $this->dashboardService->getRecentActivities($tenantId, 1, 8); // Only 8 for overview
             $payments = $this->dashboardService->getPaymentStats($tenantId);
 
             return $this->successResponse([
