@@ -281,12 +281,8 @@ class CacheManager
     public function getCacheKeysByPattern(string $pattern): array
     {
         try {
-            $redis = Cache::getRedis();
-            
-            // Handle Laravel RedisManager
-            if ($redis instanceof \Illuminate\Redis\RedisManager) {
-                $redis = $redis->connection();
-            }
+            // Use the cache connection directly instead of Cache::getRedis()
+            $redis = app('redis')->connection('cache');
             
             return $redis->keys($pattern);
         } catch (\Exception $e) {
