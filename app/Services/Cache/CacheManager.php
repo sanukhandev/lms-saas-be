@@ -166,6 +166,28 @@ class CacheManager
     {
         try {
             $redis = Cache::getRedis();
+            
+            // Handle Laravel RedisManager
+            if ($redis instanceof \Illuminate\Redis\RedisManager) {
+                $redis = $redis->connection();
+            }
+            
+            // Handle predis client
+            if ($redis instanceof \Predis\Client) {
+                $info = $redis->info();
+                
+                return [
+                    'redis_version' => $info['Server']['redis_version'] ?? 'Unknown',
+                    'used_memory' => $info['Memory']['used_memory_human'] ?? 'Unknown',
+                    'connected_clients' => $info['Clients']['connected_clients'] ?? 'Unknown',
+                    'keyspace_hits' => $info['Stats']['keyspace_hits'] ?? 0,
+                    'keyspace_misses' => $info['Stats']['keyspace_misses'] ?? 0,
+                    'hit_rate' => $this->calculateHitRate($info['Stats'] ?? []),
+                    'total_keys' => $this->getTotalKeys($redis),
+                ];
+            }
+            
+            // Handle phpredis client
             $info = $redis->info();
             
             return [
@@ -260,6 +282,12 @@ class CacheManager
     {
         try {
             $redis = Cache::getRedis();
+            
+            // Handle Laravel RedisManager
+            if ($redis instanceof \Illuminate\Redis\RedisManager) {
+                $redis = $redis->connection();
+            }
+            
             return $redis->keys($pattern);
         } catch (\Exception $e) {
             Log::error("Failed to get cache keys by pattern: " . $e->getMessage());
