@@ -65,16 +65,12 @@ class FeedbackFactory extends Factory
         }
 
         return [
-            'type' => $this->faker->randomElement($feedbackTypes),
             'rating' => $rating,
             'comment' => $comment,
-            'is_anonymous' => $this->faker->boolean(20), // 20% chance of being anonymous
-            'is_approved' => $this->faker->boolean(85), // 85% chance of being approved
-            'response' => $this->faker->boolean(30) ? $this->faker->paragraph() : null,
-            'responded_at' => $this->faker->boolean(30) ? $this->faker->dateTimeBetween('-1 month', 'now') : null,
             'course_id' => Course::factory(),
             'student_id' => User::factory()->state(['role' => 'student']),
-            'responded_by' => $this->faker->boolean(30) ? User::factory()->state(['role' => 'tutor']) : null,
+            'tutor_id' => User::factory()->state(['role' => 'tutor']),
+            'class_session_id' => null, // Will be set if needed
             'tenant_id' => 1, // Will be overridden in seeder
         ];
     }

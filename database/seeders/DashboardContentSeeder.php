@@ -219,22 +219,22 @@ class DashboardContentSeeder extends Seeder
             }
         }
 
-        $this->command->info('Creating notifications...');
+        // $this->command->info('Creating notifications...');
         
-        // Create notifications for all users
-        $allUsers = User::where('tenant_id', $tenant->id)->get();
-        foreach ($allUsers as $user) {
-            Notification::factory()->count(rand(3, 10))->create([
-                'user_id' => $user->id,
-                'tenant_id' => $tenant->id,
-            ]);
-        }
+        // // Create notifications for all users
+        // $allUsers = User::where('tenant_id', $tenant->id)->get();
+        // foreach ($allUsers as $user) {
+        //     Notification::factory()->count(rand(3, 10))->create([
+        //         'user_id' => $user->id,
+        //         'tenant_id' => $tenant->id,
+        //     ]);
+        // }
 
-        // Create some global notifications
-        Notification::factory()->count(5)->create([
-            'user_id' => $tenantAdmin->id,
-            'tenant_id' => $tenant->id,
-        ]);
+        // // Create some global notifications
+        // Notification::factory()->count(5)->create([
+        //     'user_id' => $tenantAdmin->id,
+        //     'tenant_id' => $tenant->id,
+        // ]);
 
         $this->command->info('Creating course purchases...');
         
@@ -298,7 +298,6 @@ class DashboardContentSeeder extends Seeder
         $this->command->info('- ' . count($courses) . ' Courses');
         $this->command->info('- Course contents, sessions, exams, and progress data');
         $this->command->info('- Course purchases, feedback, and certificates');
-        $this->command->info('- Notifications for all users');
         
         $this->command->info('Demo credentials:');
         $this->command->info('Super Admin: superadmin@example.com / password');

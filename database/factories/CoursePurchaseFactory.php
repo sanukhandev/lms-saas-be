@@ -19,76 +19,50 @@ class CoursePurchaseFactory extends Factory
      */
     public function definition(): array
     {
-        $amount = $this->faker->randomFloat(2, 29.99, 299.99);
-        $paymentMethods = ['credit_card', 'paypal', 'bank_transfer', 'stripe'];
-        $statuses = ['pending', 'completed', 'cancelled', 'refunded'];
-
+        $currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+        $amounts = [49.99, 99.99, 149.99, 199.99, 299.99, 399.99];
+        
         return [
-            'amount' => $amount,
-            'currency' => $this->faker->randomElement(['USD', 'EUR', 'GBP']),
-            'payment_method' => $this->faker->randomElement($paymentMethods),
-            'payment_status' => $this->faker->randomElement($statuses),
-            'transaction_id' => 'TXN-' . strtoupper($this->faker->bothify('???-###-???')),
-            'purchase_date' => $this->faker->dateTimeBetween('-6 months', 'now'),
-            'payment_data' => $this->generatePaymentData(),
+            'student_id' => User::factory(),
             'course_id' => Course::factory(),
-            'student_id' => User::factory()->state(['role' => 'student']),
+            'amount_paid' => $this->faker->randomElement($amounts),
+            'currency' => $this->faker->randomElement($currencies),
+            'invoice_id' => null, // Will be set if needed
+            'access_start_date' => $this->faker->dateTimeBetween('-1 month', 'now'),
+            'access_expires_at' => $this->faker->dateTimeBetween('+6 months', '+2 years'),
+            'is_active' => $this->faker->boolean(90),
             'tenant_id' => 1, // Will be overridden in seeder
+            'created_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
         ];
     }
 
     /**
-     * Generate payment data.
+     * Indicate that the purchase is active.
      */
-    private function generatePaymentData(): array
-    {
-        return [
-            'payment_gateway' => $this->faker->randomElement(['stripe', 'paypal', 'square']),
-            'gateway_transaction_id' => $this->faker->uuid(),
-            'payment_fee' => $this->faker->randomFloat(2, 0.99, 9.99),
-            'discount_applied' => $this->faker->boolean(30),
-            'discount_amount' => $this->faker->boolean(30) ? $this->faker->randomFloat(2, 5, 50) : 0,
-            'coupon_code' => $this->faker->boolean(20) ? strtoupper($this->faker->bothify('???##')) : null,
-        ];
-    }
-
-    /**
-     * Indicate that the purchase is completed.
-     */
-    public function completed(): static
+    public function active(): static
     {
         return $this->state(fn (array $attributes) => [
-            'payment_status' => 'completed',
+            'is_active' => true,
         ]);
     }
 
     /**
-     * Indicate that the purchase is pending.
+     * Indicate that the purchase is inactive.
      */
-    public function pending(): static
+    public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
-            'payment_status' => 'pending',
+            'is_active' => false,
         ]);
     }
 
     /**
-     * Indicate that the purchase is cancelled.
+     * Indicate that the purchase access has expired.
      */
-    public function cancelled(): static
+    public function expired(): static
     {
         return $this->state(fn (array $attributes) => [
-            'payment_status' => 'cancelled',
-        ]);
-    }
-
-    /**
-     * Indicate that the purchase is refunded.
-     */
-    public function refunded(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'payment_status' => 'refunded',
+            'access_expires_at' => $this->faker->dateTimeBetween('-1 month', '-1 day'),
         ]);
     }
 }
