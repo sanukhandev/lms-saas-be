@@ -76,7 +76,7 @@ class WarmCacheCommand extends Command
         }
 
         // Warm user cache
-        $users = User::where('is_active', true)->get();
+        $users = User::limit(100)->get();
         foreach ($users as $user) {
             $this->warmUserCache($user->id);
         }
@@ -104,7 +104,7 @@ class WarmCacheCommand extends Command
         }
 
         // Warm active users
-        $users = User::where('is_active', true)->limit(100)->get();
+        $users = User::limit(100)->get();
         $this->line('Warming user cache...');
         foreach ($users as $user) {
             $this->authCache->getUserById($user->id);

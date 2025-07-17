@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class TestCacheCommand extends Command
 {
-    protected $signature = 'cache:test 
+    protected $signature = 'cache:test
                           {--clear : Clear cache before testing}
                           {--details : Show detailed output}';
 
@@ -129,7 +129,7 @@ class TestCacheCommand extends Command
             // Test Redis connection
             $result = Cache::store('redis')->put('test_connection', 'working', 10);
             $retrieved = Cache::store('redis')->get('test_connection');
-            
+
             if ($retrieved === 'working') {
                 Cache::store('redis')->forget('test_connection');
                 return true;
@@ -208,10 +208,10 @@ class TestCacheCommand extends Command
 
             // Test getUserByEmail caching
             $cachedUserByEmail = $this->authCache->getUserByEmail($user->email);
-            
+
             return $cachedUser1 && $cachedUser2 && $cachedUserByEmail &&
-                   $cachedUser1->id === $user->id && 
-                   $cachedUserByEmail->id === $user->id;
+                $cachedUser1->id === $user->id &&
+                $cachedUserByEmail->id === $user->id;
         } catch (\Exception $e) {
             if ($this->option('details')) {
                 $this->error('Authentication cache error: ' . $e->getMessage());
@@ -284,9 +284,9 @@ class TestCacheCommand extends Command
             // Test enrollment count caching
             $enrollmentCount = $this->courseService->getCourseEnrollmentCount($course->id);
 
-            return $cachedCourse1 && $cachedCourse2 && 
-                   $cachedCourse1->id === $course->id &&
-                   is_numeric($enrollmentCount);
+            return $cachedCourse1 && $cachedCourse2 &&
+                $cachedCourse1->id === $course->id &&
+                is_numeric($enrollmentCount);
         } catch (\Exception $e) {
             if ($this->option('details')) {
                 $this->error('Course cache error: ' . $e->getMessage());
@@ -320,9 +320,9 @@ class TestCacheCommand extends Command
             // Test recent activities caching
             $activities = $this->dashboardService->getRecentActivities($tenant->id);
 
-            return $stats1 && $stats2 && 
-                   $stats1->totalUsers === $stats2->totalUsers &&
-                   $activities !== null;
+            return $stats1 && $stats2 &&
+                $stats1->totalUsers === $stats2->totalUsers &&
+                $activities !== null;
         } catch (\Exception $e) {
             if ($this->option('details')) {
                 $this->error('Dashboard cache error: ' . $e->getMessage());
@@ -334,7 +334,7 @@ class TestCacheCommand extends Command
     private function testCachePerformance(): void
     {
         $this->line('Running performance comparison...');
-        
+
         try {
             // Test database query performance
             $startTime = microtime(true);
@@ -357,7 +357,7 @@ class TestCacheCommand extends Command
             $this->line("  Database query: " . number_format($dbTime * 1000, 2) . "ms");
             $this->line("  Cache store: " . number_format($cacheTime * 1000, 2) . "ms");
             $this->line("  Cache retrieval: " . number_format($retrievalTime * 1000, 2) . "ms");
-            
+
             $speedup = $dbTime / $retrievalTime;
             $this->line("  🚀 Cache is " . number_format($speedup, 1) . "x faster than database");
 
