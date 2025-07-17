@@ -6,16 +6,19 @@ use App\DTOs\Tenant\UpdateTenantSettingsDTO;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Cache\CacheManager;
+use App\Services\Auth\AuthCacheService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class TenantService
 {
     protected CacheManager $cacheManager;
+    protected AuthCacheService $authCache;
 
-    public function __construct(CacheManager $cacheManager)
+    public function __construct(CacheManager $cacheManager, AuthCacheService $authCache)
     {
         $this->cacheManager = $cacheManager;
+        $this->authCache = $authCache;
     }
 
     /**
@@ -31,9 +34,7 @@ class TenantService
      */
     public function findByDomain(string $domain): ?Tenant
     {
-        return Cache::remember("tenant_domain_{$domain}", 3600, function () use ($domain) {
-            return Tenant::where('domain', $domain)->first();
-        });
+        return $this->authCache->getTenantByDomain($domain);
     }
 
     /**
@@ -71,7 +72,7 @@ class TenantService
 
             // Clear cache for this tenant using cache manager
             $this->cacheManager->clearTenantCache($tenant->id);
-            
+
             // Also clear specific tenant cache keys
             Cache::forget("tenant_domain_{$tenant->domain}");
             Cache::forget("tenant_settings_{$tenant->domain}");
@@ -123,56 +124,56 @@ class TenantService
                 return [];
             }
 
-        // Ensure all required settings keys exist with defaults
-        $defaultSettings = [
-            'timezone' => 'UTC',
-            'language' => 'en',
-            'theme' => 'default',
-            'features' => [
-                'courses' => true,
-                'certificates' => true,
-                'payments' => true,
-                'notifications' => true,
-            ],
-            'branding' => [
-                'logo' => null,
-                'primary_color' => '#3b82f6',
-                'secondary_color' => '#64748b',
-                'company_name' => $tenant->name,
-                'favicon' => null,
-            ],
-            'theme_config' => [
-                'mode' => 'light',
-                'colors' => [
-                    'primary' => '#3b82f6',
-                    'secondary' => '#64748b',
-                    'accent' => '#8b5cf6',
-                    'background' => '#ffffff',
-                    'foreground' => '#0f172a',
+            // Ensure all required settings keys exist with defaults
+            $defaultSettings = [
+                'timezone' => 'UTC',
+                'language' => 'en',
+                'theme' => 'default',
+                'features' => [
+                    'courses' => true,
+                    'certificates' => true,
+                    'payments' => true,
+                    'notifications' => true,
                 ],
-            ],
-        ];
+                'branding' => [
+                    'logo' => null,
+                    'primary_color' => '#3b82f6',
+                    'secondary_color' => '#64748b',
+                    'company_name' => $tenant->name,
+                    'favicon' => null,
+                ],
+                'theme_config' => [
+                    'mode' => 'light',
+                    'colors' => [
+                        'primary' => '#3b82f6',
+                        'secondary' => '#64748b',
+                        'accent' => '#8b5cf6',
+                        'background' => '#ffffff',
+                        'foreground' => '#0f172a',
+                    ],
+                ],
+            ];
 
-        // Handle settings casting - ensure it's an array
-        $tenantSettings = [];
-        if ($tenant->settings) {
-            if (is_string($tenant->settings)) {
-                // Try to decode JSON if it's a string
-                $decoded = json_decode($tenant->settings, true);
-                $tenantSettings = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($tenant->settings)) {
-                $tenantSettings = $tenant->settings;
+            // Handle settings casting - ensure it's an array
+            $tenantSettings = [];
+            if ($tenant->settings) {
+                if (is_string($tenant->settings)) {
+                    // Try to decode JSON if it's a string
+                    $decoded = json_decode($tenant->settings, true);
+                    $tenantSettings = is_array($decoded) ? $decoded : [];
+                } elseif (is_array($tenant->settings)) {
+                    $tenantSettings = $tenant->settings;
+                }
             }
-        }
 
-        $settings = array_merge($defaultSettings, $tenantSettings);
+            $settings = array_merge($defaultSettings, $tenantSettings);
 
-        return [
-            'id' => $tenant->id,
-            'name' => $tenant->name,
-            'domain' => $tenant->domain,
-            'settings' => $settings,
-        ];
+            return [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'domain' => $tenant->domain,
+                'settings' => $settings,
+            ];
         });
     }
 }

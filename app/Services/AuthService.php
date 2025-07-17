@@ -9,13 +9,22 @@ use App\Models\User;
 use App\Models\Tenant;
 use App\Exceptions\TenantValidationException;
 use App\Traits\LogsServiceCalls;
+use App\Services\Auth\AuthCacheService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class AuthService
 {
     use LogsServiceCalls;
+
+    protected AuthCacheService $authCache;
+
+    public function __construct(AuthCacheService $authCache)
+    {
+        $this->authCache = $authCache;
+    }
 
     public function login(LoginDTO $loginDTO): array
     {
@@ -27,10 +36,8 @@ class AuthService
                 'user_agent' => request()->header('User-Agent')
             ]);
 
-            // Find the tenant
-            $tenant = Tenant::where('slug', $loginDTO->tenantSlug)
-                ->where('status', 'active')
-                ->first();
+            // Find the tenant with caching
+            $tenant = $this->authCache->getTenantBySlug($loginDTO->tenantSlug);
 
             if (!$tenant) {
                 throw new TenantValidationException('Tenant not found or inactive');
@@ -83,10 +90,8 @@ class AuthService
     public function register(RegisterDTO $registerDTO): array
     {
         try {
-            // Find the tenant
-            $tenant = Tenant::where('slug', $registerDTO->tenantSlug)
-                ->where('status', 'active')
-                ->first();
+            // Find the tenant with caching
+            $tenant = $this->authCache->getTenantBySlug($registerDTO->tenantSlug);
 
             if (!$tenant) {
                 throw new TenantValidationException('Tenant not found or inactive');
