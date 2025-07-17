@@ -408,4 +408,277 @@ class TenantSettingsController extends Controller
             'theme_config' => $theme_config
         ], 'Theme settings updated successfully');
     }
+
+    /**
+     * Get color palettes for theme customization
+     */
+    public function getColorPalettes()
+    {
+        $colorPalettes = [
+            [
+                'id' => 'default',
+                'name' => 'Default',
+                'description' => 'Default color palette',
+                'colors' => [
+                    'primary' => '#3b82f6',
+                    'secondary' => '#64748b',
+                    'accent' => '#10b981',
+                    'background' => '#ffffff',
+                    'foreground' => '#1f2937',
+                    'card' => '#ffffff',
+                    'cardForeground' => '#1f2937',
+                    'popover' => '#ffffff',
+                    'popoverForeground' => '#1f2937',
+                    'muted' => '#f8fafc',
+                    'mutedForeground' => '#64748b',
+                    'border' => '#e2e8f0',
+                    'input' => '#e2e8f0',
+                    'ring' => '#3b82f6',
+                    'destructive' => '#ef4444',
+                    'chart1' => '#3b82f6',
+                    'chart2' => '#10b981',
+                    'chart3' => '#f59e0b',
+                    'chart4' => '#ef4444',
+                    'chart5' => '#8b5cf6',
+                ],
+                'darkModeColors' => [
+                    'primary' => '#3b82f6',
+                    'secondary' => '#64748b',
+                    'accent' => '#10b981',
+                    'background' => '#0f172a',
+                    'foreground' => '#f8fafc',
+                    'card' => '#1e293b',
+                    'cardForeground' => '#f8fafc',
+                    'popover' => '#1e293b',
+                    'popoverForeground' => '#f8fafc',
+                    'muted' => '#334155',
+                    'mutedForeground' => '#94a3b8',
+                    'border' => '#334155',
+                    'input' => '#334155',
+                    'ring' => '#3b82f6',
+                    'destructive' => '#ef4444',
+                    'chart1' => '#60a5fa',
+                    'chart2' => '#34d399',
+                    'chart3' => '#fbbf24',
+                    'chart4' => '#f87171',
+                    'chart5' => '#a78bfa',
+                ],
+                'preview' => 'linear-gradient(135deg, #3b82f6 0%, #10b981 100%)',
+            ],
+            [
+                'id' => 'ocean',
+                'name' => 'Ocean',
+                'description' => 'Ocean blue color palette',
+                'colors' => [
+                    'primary' => '#0ea5e9',
+                    'secondary' => '#0f766e',
+                    'accent' => '#06b6d4',
+                    'background' => '#ffffff',
+                    'foreground' => '#1f2937',
+                    'card' => '#ffffff',
+                    'cardForeground' => '#1f2937',
+                    'popover' => '#ffffff',
+                    'popoverForeground' => '#1f2937',
+                    'muted' => '#f0f9ff',
+                    'mutedForeground' => '#64748b',
+                    'border' => '#e0f2fe',
+                    'input' => '#e0f2fe',
+                    'ring' => '#0ea5e9',
+                    'destructive' => '#ef4444',
+                    'chart1' => '#0ea5e9',
+                    'chart2' => '#06b6d4',
+                    'chart3' => '#0f766e',
+                    'chart4' => '#22d3ee',
+                    'chart5' => '#67e8f9',
+                ],
+                'darkModeColors' => [
+                    'primary' => '#0ea5e9',
+                    'secondary' => '#0f766e',
+                    'accent' => '#06b6d4',
+                    'background' => '#0c1825',
+                    'foreground' => '#f8fafc',
+                    'card' => '#1e293b',
+                    'cardForeground' => '#f8fafc',
+                    'popover' => '#1e293b',
+                    'popoverForeground' => '#f8fafc',
+                    'muted' => '#334155',
+                    'mutedForeground' => '#94a3b8',
+                    'border' => '#334155',
+                    'input' => '#334155',
+                    'ring' => '#0ea5e9',
+                    'destructive' => '#ef4444',
+                    'chart1' => '#38bdf8',
+                    'chart2' => '#22d3ee',
+                    'chart3' => '#14b8a6',
+                    'chart4' => '#67e8f9',
+                    'chart5' => '#a7f3d0',
+                ],
+                'preview' => 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
+            ],
+            [
+                'id' => 'forest',
+                'name' => 'Forest',
+                'description' => 'Forest green color palette',
+                'colors' => [
+                    'primary' => '#22c55e',
+                    'secondary' => '#15803d',
+                    'accent' => '#84cc16',
+                    'background' => '#ffffff',
+                    'foreground' => '#1f2937',
+                    'card' => '#ffffff',
+                    'cardForeground' => '#1f2937',
+                    'popover' => '#ffffff',
+                    'popoverForeground' => '#1f2937',
+                    'muted' => '#f0fdf4',
+                    'mutedForeground' => '#64748b',
+                    'border' => '#dcfce7',
+                    'input' => '#dcfce7',
+                    'ring' => '#22c55e',
+                    'destructive' => '#ef4444',
+                    'chart1' => '#22c55e',
+                    'chart2' => '#84cc16',
+                    'chart3' => '#15803d',
+                    'chart4' => '#4ade80',
+                    'chart5' => '#a3e635',
+                ],
+                'darkModeColors' => [
+                    'primary' => '#22c55e',
+                    'secondary' => '#15803d',
+                    'accent' => '#84cc16',
+                    'background' => '#0f1b0f',
+                    'foreground' => '#f8fafc',
+                    'card' => '#1e293b',
+                    'cardForeground' => '#f8fafc',
+                    'popover' => '#1e293b',
+                    'popoverForeground' => '#f8fafc',
+                    'muted' => '#334155',
+                    'mutedForeground' => '#94a3b8',
+                    'border' => '#334155',
+                    'input' => '#334155',
+                    'ring' => '#22c55e',
+                    'destructive' => '#ef4444',
+                    'chart1' => '#4ade80',
+                    'chart2' => '#a3e635',
+                    'chart3' => '#22c55e',
+                    'chart4' => '#16a34a',
+                    'chart5' => '#84cc16',
+                ],
+                'preview' => 'linear-gradient(135deg, #22c55e 0%, #84cc16 100%)',
+            ],
+        ];
+
+        return $this->successResponse([
+            'palettes' => $colorPalettes,
+            'categories' => ['Default', 'Nature', 'Corporate', 'Creative'],
+        ], 'Color palettes retrieved successfully');
+    }
+
+    /**
+     * Get preset themes
+     */
+    public function getPresetThemes()
+    {
+        $presetThemes = [
+            [
+                'id' => 'modern',
+                'name' => 'Modern',
+                'description' => 'Clean and modern design',
+                'colors' => [
+                    'primary' => '#3b82f6',
+                    'secondary' => '#64748b',
+                    'accent' => '#10b981',
+                    'background' => '#ffffff',
+                    'foreground' => '#1f2937',
+                ],
+                'typography' => [
+                    'font_family' => 'Inter',
+                    'font_size' => '16px',
+                    'line_height' => '1.5',
+                ],
+                'border_radius' => [
+                    'small' => '4px',
+                    'medium' => '8px',
+                    'large' => '12px',
+                ],
+                'shadows' => [
+                    'small' => '0 1px 2px rgba(0, 0, 0, 0.1)',
+                    'medium' => '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    'large' => '0 10px 15px rgba(0, 0, 0, 0.1)',
+                ],
+                'spacing' => [
+                    'small' => '8px',
+                    'medium' => '16px',
+                    'large' => '24px',
+                ],
+            ],
+            [
+                'id' => 'corporate',
+                'name' => 'Corporate',
+                'description' => 'Professional corporate design',
+                'colors' => [
+                    'primary' => '#1e40af',
+                    'secondary' => '#374151',
+                    'accent' => '#059669',
+                    'background' => '#f9fafb',
+                    'foreground' => '#111827',
+                ],
+                'typography' => [
+                    'font_family' => 'Roboto',
+                    'font_size' => '14px',
+                    'line_height' => '1.4',
+                ],
+                'border_radius' => [
+                    'small' => '2px',
+                    'medium' => '4px',
+                    'large' => '6px',
+                ],
+                'shadows' => [
+                    'small' => '0 1px 1px rgba(0, 0, 0, 0.1)',
+                    'medium' => '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    'large' => '0 4px 8px rgba(0, 0, 0, 0.1)',
+                ],
+                'spacing' => [
+                    'small' => '6px',
+                    'medium' => '12px',
+                    'large' => '18px',
+                ],
+            ],
+            [
+                'id' => 'creative',
+                'name' => 'Creative',
+                'description' => 'Vibrant and creative design',
+                'colors' => [
+                    'primary' => '#7c3aed',
+                    'secondary' => '#f59e0b',
+                    'accent' => '#ec4899',
+                    'background' => '#ffffff',
+                    'foreground' => '#1f2937',
+                ],
+                'typography' => [
+                    'font_family' => 'Poppins',
+                    'font_size' => '16px',
+                    'line_height' => '1.6',
+                ],
+                'border_radius' => [
+                    'small' => '8px',
+                    'medium' => '16px',
+                    'large' => '24px',
+                ],
+                'shadows' => [
+                    'small' => '0 2px 4px rgba(124, 58, 237, 0.1)',
+                    'medium' => '0 8px 16px rgba(124, 58, 237, 0.1)',
+                    'large' => '0 16px 32px rgba(124, 58, 237, 0.1)',
+                ],
+                'spacing' => [
+                    'small' => '12px',
+                    'medium' => '20px',
+                    'large' => '32px',
+                ],
+            ],
+        ];
+
+        return $this->successResponse([
+            'presets' => $presetThemes,
+        ], 'Preset themes retrieved successfully');
+    }
 }

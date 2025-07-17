@@ -17,7 +17,6 @@ Route::get('/test', function () {
 Route::prefix('v1')->group(function () {
     // Public tenant routes (no authentication required)
     Route::get('tenants/domain/{domain}', [App\Http\Controllers\Api\TenantController::class, 'getByDomain']);
-
     // Authentication routes (public) - no tenant middleware
     Route::group(['prefix' => 'auth'], function () {
         Route::post('register', [App\Http\Controllers\Api\AuthController::class, 'register']);
@@ -55,6 +54,7 @@ Route::prefix('v1')->group(function () {
             Route::put('security', [App\Http\Controllers\Api\TenantSettingsController::class, 'updateSecuritySettings']);        // Theme settings
             Route::get('theme', [App\Http\Controllers\Api\TenantSettingsController::class, 'getThemeSettings']);
             Route::put('theme', [App\Http\Controllers\Api\TenantSettingsController::class, 'updateThemeSettings']);
+            Route::get('theme/color-palettes', [App\Http\Controllers\Api\TenantSettingsController::class, 'getColorPalettes']);
         });
 
         // Dashboard routes
@@ -118,6 +118,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/{user}', [App\Http\Controllers\Api\UserController::class, 'show']);
             Route::put('/{user}', [App\Http\Controllers\Api\UserController::class, 'update']);
             Route::delete('/{user}', [App\Http\Controllers\Api\UserController::class, 'destroy']);
+        });
+
+        // Theme Management Routes
+        Route::prefix('theme')->group(function () {
+            Route::get('/color-palettes', [App\Http\Controllers\Api\TenantSettingsController::class, 'getColorPalettes']);
+            Route::get('/presets', [App\Http\Controllers\Api\TenantSettingsController::class, 'getPresetThemes']);
         });
 
         // Cache Management Routes (Admin only)
