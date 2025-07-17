@@ -351,38 +351,135 @@ class AnalyticsService
 
     private function getDailyActiveUsers(string $tenantId, array $dateRange): array
     {
-        // Placeholder - implement when you have user activity tracking
-        return [];
+        [$startDate, $endDate] = $dateRange;
+        
+        // Get users who have student progress activity in the date range
+        $dailyActiveUsers = DB::table('student_progress')
+            ->where('tenant_id', $tenantId)
+            ->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate])
+            ->whereNotNull('last_accessed')
+            ->select(
+                DB::raw('DATE(last_accessed) as date'),
+                DB::raw('COUNT(DISTINCT user_id) as active_users')
+            )
+            ->groupBy(DB::raw('DATE(last_accessed)'))
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'active_users' => $item->active_users
+                ];
+            })
+            ->toArray();
+
+        return $dailyActiveUsers;
     }
 
     private function getAverageSessionDuration(string $tenantId, array $dateRange): float
     {
-        // Placeholder - implement when you have session tracking
-        return 0;
+        [$startDate, $endDate] = $dateRange;
+        
+        // Calculate average session duration based on time spent in courses
+        $avgDuration = DB::table('student_progress')
+            ->where('tenant_id', $tenantId)
+            ->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate])
+            ->whereNotNull('time_spent_mins')
+            ->where('time_spent_mins', '>', 0)
+            ->avg('time_spent_mins');
+
+        return round($avgDuration ?? 0, 2);
     }
 
     private function getCourseInteractionRate(string $tenantId, array $dateRange): float
     {
-        // Placeholder - implement when you have interaction tracking
-        return 0;
+        [$startDate, $endDate] = $dateRange;
+        
+        // Get total active students in the period
+        $totalActiveStudents = DB::table('student_progress')
+            ->where('tenant_id', $tenantId)
+            ->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate])
+            ->distinct('user_id')
+            ->count('user_id');
+            
+        // Get students who actually interacted with content (made progress)
+        $interactingStudents = DB::table('student_progress')
+            ->where('tenant_id', $tenantId)
+            ->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate])
+            ->where('completion_percentage', '>', 0)
+            ->distinct('user_id')
+            ->count('user_id');
+            
+        if ($totalActiveStudents === 0) {
+            return 0;
+        }
+        
+        return round(($interactingStudents / $totalActiveStudents) * 100, 2);
     }
 
     private function getPopularCourses(string $tenantId, array $dateRange): array
     {
+        [$startDate, $endDate] = $dateRange;
+        
         return Course::where('tenant_id', $tenantId)
             ->withCount(['students' => function ($query) {
                 $query->where('course_user.role', 'student');
             }])
+            ->with(['studentProgress' => function ($query) use ($startDate, $endDate) {
+                $query->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate]);
+            }])
             ->orderBy('students_count', 'desc')
             ->limit(10)
-            ->get(['id', 'title', 'students_count'])
+            ->get()
+            ->map(function ($course) {
+                $progress = $course->studentProgress;
+                $avgCompletion = $progress->avg('completion_percentage') ?? 0;
+                $avgTimeSpent = $progress->avg('time_spent_mins') ?? 0;
+                
+                return [
+                    'id' => $course->id,
+                    'title' => $course->title,
+                    'description' => $course->description,
+                    'enrollments' => $course->students_count,
+                    'completion_rate' => round($avgCompletion, 1),
+                    'avg_time_spent' => round($avgTimeSpent / 60, 1), // Convert to hours
+                    'total_interactions' => $progress->count(),
+                ];
+            })
             ->toArray();
     }
 
     private function getEngagementTrends(string $tenantId, array $dateRange): array
     {
-        // Placeholder for engagement trends
-        return [];
+        [$startDate, $endDate] = $dateRange;
+        
+        // Get daily engagement metrics for trends
+        $trends = DB::table('student_progress')
+            ->where('tenant_id', $tenantId)
+            ->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate])
+            ->whereNotNull('last_accessed')
+            ->select(
+                DB::raw('DATE(last_accessed) as date'),
+                DB::raw('COUNT(DISTINCT user_id) as active_users'),
+                DB::raw('COUNT(id) as total_interactions'),
+                DB::raw('AVG(time_spent_mins) as avg_session_time'),
+                DB::raw('AVG(completion_percentage) as avg_progress')
+            )
+            ->groupBy(DB::raw('DATE(last_accessed)'))
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'active_users' => $item->active_users,
+                    'total_interactions' => $item->total_interactions,
+                    'avg_session_time' => round($item->avg_session_time ?? 0, 1),
+                    'avg_progress' => round($item->avg_progress ?? 0, 1)
+                ];
+            })
+            ->toArray();
+
+        return $trends;
     }
 
     private function getCompletionRatesByPeriod(string $tenantId, array $dateRange): array
