@@ -8,12 +8,15 @@ use App\DTOs\Dashboard\{
     UserDTO,
     CourseProgressDTO,
     UserProgressDTO,
-    PaymentStatsDTO
+    PaymentStatsDTO,
+    ChartDataDTO
 };
 use App\Models\{Course, User, StudentProgress, CoursePurchase};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Carbon\Carbon;
 
 class DashboardService
@@ -48,94 +51,222 @@ class DashboardService
     }
 
     /**
-     * Get recent activities for a tenant
+     * Get recent activities for a tenant with pagination
      */
-    public function getRecentActivities(string $tenantId): Collection
+    public function getRecentActivities(string $tenantId, int $page = 1, int $perPage = 10): LengthAwarePaginator
     {
-        return Cache::remember("recent_activities_{$tenantId}", 300, function () use ($tenantId) {
+        $cacheKey = "recent_activities_{$tenantId}_{$page}_{$perPage}";
+
+        return Cache::remember($cacheKey, 300, function () use ($tenantId, $page, $perPage) {
             $activities = collect();
 
             // Get recent enrollments
-            $enrollments = $this->getRecentEnrollments($tenantId);
+            $enrollments = $this->getRecentEnrollments($tenantId, 20);
             $activities = $activities->merge($enrollments);
 
             // Get recent completions
-            $completions = $this->getRecentCompletions($tenantId);
+            $completions = $this->getRecentCompletions($tenantId, 20);
             $activities = $activities->merge($completions);
 
             // Get recent payments
-            $payments = $this->getRecentPayments($tenantId);
+            $payments = $this->getRecentPayments($tenantId, 20);
             $activities = $activities->merge($payments);
 
-            return $activities->sortByDesc('timestamp')->take(15)->values();
+            // Sort all activities by timestamp
+            $sortedActivities = $activities->sortByDesc('timestamp');
+
+            // Get total count
+            $total = $sortedActivities->count();
+
+            // Calculate offset
+            $offset = ($page - 1) * $perPage;
+
+            // Get paginated items
+            $items = $sortedActivities->slice($offset, $perPage)->values();
+
+            // Create paginator
+            return new LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                [
+                    'path' => request()->url(),
+                    'pageName' => 'page',
+                ]
+            );
         });
     }
 
     /**
-     * Get course progress data for a tenant
+     * Get course progress data for a tenant with pagination
      */
-    public function getCourseProgress(string $tenantId): Collection
+    public function getCourseProgress(string $tenantId, int $page = 1, int $perPage = 10): LengthAwarePaginator
     {
-        return Cache::remember("course_progress_{$tenantId}", 600, function () use ($tenantId) {
-            return Course::where('tenant_id', $tenantId)
-                ->with(['instructor'])
-                ->withCount([
-                    'users as enrollments_count' => function ($query) {
-                        $query->wherePivot('role', 'student');
+        $cacheKey = "course_progress_{$tenantId}_{$page}_{$perPage}";
+
+        return Cache::remember($cacheKey, 600, function () use ($tenantId, $page, $perPage) {
+            // Get total count first
+            $total = Course::where('tenant_id', $tenantId)->count();
+
+            // Calculate offset
+            $offset = ($page - 1) * $perPage;
+
+            // Get paginated courses with optimized queries
+            $courses = Course::where('tenant_id', $tenantId)
+                ->with([
+                    'users' => function ($query) {
+                        $query->select('users.id', 'users.name')->withPivot('role');
                     }
                 ])
-                ->get()
-                ->map(function ($course) {
-                    $completions = StudentProgress::where('course_id', $course->id)
-                        ->where('completion_percentage', 100)
-                        ->count();
+                ->skip($offset)
+                ->take($perPage)
+                ->get();
 
-                    $completionRate = $course->enrollments_count > 0 ?
-                        ($completions / $course->enrollments_count) * 100 : 0;
+            // Get all course IDs for bulk queries
+            $courseIds = $courses->pluck('id');
 
-                    $averageProgress = StudentProgress::where('course_id', $course->id)
-                        ->avg('completion_percentage') ?? 0;
+            // Bulk query for enrollments
+            $enrollments = DB::table('course_user')
+                ->select('course_id', DB::raw('COUNT(*) as count'))
+                ->whereIn('course_id', $courseIds)
+                ->where('role', 'student')
+                ->groupBy('course_id')
+                ->pluck('count', 'course_id');
 
-                    return new CourseProgressDTO(
-                        id: $course->id,
-                        title: $course->title,
-                        enrollments: $course->enrollments_count,
-                        completions: $completions,
-                        completionRate: round($completionRate, 1),
-                        averageProgress: round($averageProgress, 1),
-                        instructor: $course->instructor->name ?? 'Unknown',
-                        status: $course->is_active ? 'active' : 'inactive'
-                    );
-                });
+            // Bulk query for completions
+            $completions = StudentProgress::whereIn('course_id', $courseIds)
+                ->where('completion_percentage', 100)
+                ->select('course_id', DB::raw('COUNT(*) as count'))
+                ->groupBy('course_id')
+                ->pluck('count', 'course_id');
+
+            // Bulk query for average progress
+            $averageProgress = StudentProgress::whereIn('course_id', $courseIds)
+                ->select('course_id', DB::raw('AVG(completion_percentage) as avg_progress'))
+                ->groupBy('course_id')
+                ->pluck('avg_progress', 'course_id');
+
+            $items = $courses->map(function ($course) use ($enrollments, $completions, $averageProgress) {
+                // Get counts from bulk queries
+                $enrollmentCount = $enrollments->get($course->id, 0);
+                $completionCount = $completions->get($course->id, 0);
+                $avgProgress = $averageProgress->get($course->id, 0);
+
+                // Calculate completion rate
+                $completionRate = $enrollmentCount > 0
+                    ? ($completionCount / $enrollmentCount) * 100
+                    : 0;
+
+                // Get instructor from pivot (first match)
+                $instructor = optional(
+                    $course->users->firstWhere('pivot.role', 'instructor')
+                )->name ?? 'Unknown';
+
+                // Return as DTO
+                return new CourseProgressDTO(
+                    id: $course->id,
+                    title: $course->title,
+                    enrollments: $enrollmentCount,
+                    completions: $completionCount,
+                    completionRate: round($completionRate, 1),
+                    averageProgress: round($avgProgress, 1),
+                    instructor: $instructor,
+                    status: $course->is_active ? 'active' : 'inactive'
+                );
+            });
+
+            return new LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                [
+                    'path' => request()->url(),
+                    'pageName' => 'page',
+                ]
+            );
         });
     }
 
-    /**
-     * Get user progress data for a tenant
-     */
-    public function getUserProgress(string $tenantId): Collection
-    {
-        return Cache::remember("user_progress_{$tenantId}", 600, function () use ($tenantId) {
-            return User::where('tenant_id', $tenantId)
-                ->where('role', '!=', 'super_admin')
-                ->get()
-                ->map(function ($user) use ($tenantId) {
-                    $enrollments = $this->getUserEnrollmentCount($user->id, $tenantId);
-                    $completedCourses = $this->getUserCompletedCoursesCount($user->id);
-                    $totalProgress = $this->getUserTotalProgress($user->id);
 
-                    return new UserProgressDTO(
-                        id: $user->id,
-                        name: $user->name,
-                        email: $user->email,
-                        avatar: '/avatars/default.png',
-                        enrolledCourses: $enrollments,
-                        completedCourses: $completedCourses,
-                        totalProgress: round($totalProgress, 1),
-                        lastActivity: $user->updated_at->diffForHumans(),
-                        role: $user->role
-                    );
-                });
+
+    /**
+     * Get user progress data for a tenant with pagination
+     */
+    public function getUserProgress(string $tenantId, int $page = 1, int $perPage = 10): LengthAwarePaginator
+    {
+        $cacheKey = "user_progress_{$tenantId}_{$page}_{$perPage}";
+
+        return Cache::remember($cacheKey, 600, function () use ($tenantId, $page, $perPage) {
+            // Get total count first
+            $total = User::where('tenant_id', $tenantId)
+                ->where('role', '!=', 'super_admin')
+                ->count();
+
+            // Calculate offset
+            $offset = ($page - 1) * $perPage;
+
+            // Get paginated users
+            $users = User::where('tenant_id', $tenantId)
+                ->where('role', '!=', 'super_admin')
+                ->skip($offset)
+                ->take($perPage)
+                ->get();
+
+            $userIds = $users->pluck('id');
+
+            // Bulk query for user enrollment counts
+            $enrollmentCounts = DB::table('course_user')
+                ->join('courses', 'course_user.course_id', '=', 'courses.id')
+                ->select('course_user.user_id', DB::raw('COUNT(*) as count'))
+                ->where('courses.tenant_id', $tenantId)
+                ->whereIn('course_user.user_id', $userIds)
+                ->where('course_user.role', 'student')
+                ->groupBy('course_user.user_id')
+                ->pluck('count', 'user_id');
+
+            // Bulk query for user completed courses
+            $completedCounts = StudentProgress::whereIn('user_id', $userIds)
+                ->where('completion_percentage', 100)
+                ->select('user_id', DB::raw('COUNT(*) as count'))
+                ->groupBy('user_id')
+                ->pluck('count', 'user_id');
+
+            // Bulk query for user average progress
+            $averageProgress = StudentProgress::whereIn('user_id', $userIds)
+                ->select('user_id', DB::raw('AVG(completion_percentage) as avg_progress'))
+                ->groupBy('user_id')
+                ->pluck('avg_progress', 'user_id');
+
+            $items = $users->map(function ($user) use ($enrollmentCounts, $completedCounts, $averageProgress) {
+                $enrollments = $enrollmentCounts->get($user->id, 0);
+                $completedCourses = $completedCounts->get($user->id, 0);
+                $totalProgress = $averageProgress->get($user->id, 0);
+
+                return new UserProgressDTO(
+                    id: $user->id,
+                    name: $user->name,
+                    email: $user->email,
+                    avatar: '/avatars/default.png',
+                    enrolledCourses: $enrollments,
+                    completedCourses: $completedCourses,
+                    totalProgress: round($totalProgress, 1),
+                    lastActivity: $user->updated_at->diffForHumans(),
+                    role: $user->role
+                );
+            });
+
+            return new LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                [
+                    'path' => request()->url(),
+                    'pageName' => 'page',
+                ]
+            );
         });
     }
 
@@ -160,6 +291,30 @@ class DashboardService
                 failedPayments: 0, // Not tracked in current schema
                 averageOrderValue: round($averageOrderValue, 2),
                 revenueGrowth: round($revenueGrowth, 1)
+            );
+        });
+    }
+
+    /**
+     * Get chart data for dashboard visualizations
+     */
+    public function getChartData(string $tenantId): ChartDataDTO
+    {
+        return Cache::remember("chart_data_{$tenantId}", 900, function () use ($tenantId) {
+            $enrollmentTrends = $this->getEnrollmentTrends($tenantId);
+            $completionTrends = $this->getCompletionTrends($tenantId);
+            $revenueTrends = $this->getRevenueTrends($tenantId);
+            $categoryDistribution = $this->getCategoryDistribution($tenantId);
+            $userActivityTrends = $this->getUserActivityTrends($tenantId);
+            $monthlyStats = $this->getMonthlyStats($tenantId);
+
+            return new ChartDataDTO(
+                enrollmentTrends: $enrollmentTrends,
+                completionTrends: $completionTrends,
+                revenueTrends: $revenueTrends,
+                categoryDistribution: $categoryDistribution,
+                userActivityTrends: $userActivityTrends,
+                monthlyStats: $monthlyStats
             );
         });
     }
@@ -215,16 +370,24 @@ class DashboardService
             ->count();
     }
 
-    private function getRecentEnrollments(string $tenantId): Collection
+    private function getRecentEnrollments(string $tenantId, int $limit = 10): Collection
     {
         return DB::table('course_user')
             ->join('courses', 'course_user.course_id', '=', 'courses.id')
             ->join('users', 'course_user.user_id', '=', 'users.id')
+            ->select([
+                'course_user.id',
+                'course_user.created_at',
+                'course_user.course_id',
+                'courses.title',
+                'users.name',
+                'users.email'
+            ])
             ->where('courses.tenant_id', $tenantId)
             ->where('course_user.role', 'student')
             ->where('course_user.created_at', '>=', Carbon::now()->subDays(7))
             ->orderBy('course_user.created_at', 'desc')
-            ->limit(10)
+            ->limit($limit)
             ->get()
             ->map(function ($enrollment) {
                 return new ActivityDTO(
@@ -245,14 +408,15 @@ class DashboardService
             });
     }
 
-    private function getRecentCompletions(string $tenantId): Collection
+    private function getRecentCompletions(string $tenantId, int $limit = 10): Collection
     {
-        return StudentProgress::with(['user', 'course'])
+        return StudentProgress::with(['user:id,name,email', 'course:id,title'])
             ->where('tenant_id', $tenantId)
             ->where('completion_percentage', 100)
+            ->whereNotNull('completed_at')
             ->where('completed_at', '>=', Carbon::now()->subDays(7))
             ->orderBy('completed_at', 'desc')
-            ->limit(10)
+            ->limit($limit)
             ->get()
             ->map(function ($completion) {
                 return new ActivityDTO(
@@ -273,14 +437,14 @@ class DashboardService
             });
     }
 
-    private function getRecentPayments(string $tenantId): Collection
+    private function getRecentPayments(string $tenantId, int $limit = 10): Collection
     {
-        return CoursePurchase::with(['student', 'course'])
+        return CoursePurchase::with(['student:id,name,email', 'course:id,title'])
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->where('created_at', '>=', Carbon::now()->subDays(7))
             ->orderBy('created_at', 'desc')
-            ->limit(10)
+            ->limit($limit)
             ->get()
             ->map(function ($payment) {
                 return new ActivityDTO(
@@ -363,5 +527,131 @@ class DashboardService
             ->sum('amount_paid');
 
         return $lastMonthRevenue > 0 ? (($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100 : 0;
+    }
+
+    // Chart Data Helper Methods
+
+    private function getEnrollmentTrends(string $tenantId): array
+    {
+        return DB::table('course_user')
+            ->join('courses', 'course_user.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
+            ->where('course_user.role', 'student')
+            ->where('course_user.created_at', '>=', Carbon::now()->subDays(30))
+            ->selectRaw('DATE(course_user.created_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => Carbon::parse($item->date)->format('Y-m-d'),
+                    'count' => $item->count
+                ];
+            })
+            ->toArray();
+    }
+
+    private function getCompletionTrends(string $tenantId): array
+    {
+        return StudentProgress::where('tenant_id', $tenantId)
+            ->where('completion_percentage', 100)
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '>=', Carbon::now()->subDays(30))
+            ->selectRaw('DATE(completed_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => Carbon::parse($item->date)->format('Y-m-d'),
+                    'count' => $item->count
+                ];
+            })
+            ->toArray();
+    }
+
+    private function getRevenueTrends(string $tenantId): array
+    {
+        return CoursePurchase::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->where('created_at', '>=', Carbon::now()->subDays(30))
+            ->selectRaw('DATE(created_at) as date, SUM(amount_paid) as total')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => Carbon::parse($item->date)->format('Y-m-d'),
+                    'total' => (float) $item->total
+                ];
+            })
+            ->toArray();
+    }
+
+    private function getCategoryDistribution(string $tenantId): array
+    {
+        return DB::table('courses')
+            ->join('categories', 'courses.category_id', '=', 'categories.id')
+            ->where('courses.tenant_id', $tenantId)
+            ->selectRaw('categories.name as category, COUNT(*) as count')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderBy('count', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'category' => $item->category,
+                    'count' => $item->count
+                ];
+            })
+            ->toArray();
+    }
+
+    private function getUserActivityTrends(string $tenantId): array
+    {
+        return User::where('tenant_id', $tenantId)
+            ->where('role', '!=', 'super_admin')
+            ->where('updated_at', '>=', Carbon::now()->subDays(30))
+            ->selectRaw('DATE(updated_at) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => Carbon::parse($item->date)->format('Y-m-d'),
+                    'count' => $item->count
+                ];
+            })
+            ->toArray();
+    }
+
+    private function getMonthlyStats(string $tenantId): array
+    {
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+
+        $enrollments = DB::table('course_user')
+            ->join('courses', 'course_user.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
+            ->where('course_user.role', 'student')
+            ->whereBetween('course_user.created_at', [$startOfMonth, $endOfMonth])
+            ->count();
+
+        $completions = StudentProgress::where('tenant_id', $tenantId)
+            ->where('completion_percentage', 100)
+            ->whereNotNull('completed_at')
+            ->whereBetween('completed_at', [$startOfMonth, $endOfMonth])
+            ->count();
+
+        $revenue = CoursePurchase::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->sum('amount_paid');
+
+        return [
+            'enrollments' => $enrollments,
+            'completions' => $completions,
+            'revenue' => (float) $revenue,
+            'month' => $startOfMonth->format('F Y')
+        ];
     }
 }

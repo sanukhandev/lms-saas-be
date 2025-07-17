@@ -29,24 +29,56 @@ class DashboardController extends Controller
             // Get basic statistics
             $stats = $this->dashboardService->getDashboardStats($tenantId);
 
-            // Get recent activities
-            $activities = $this->dashboardService->getRecentActivities($tenantId);
+            // Get recent activities (limited to 10 for dashboard overview)
+            $activities = $this->dashboardService->getRecentActivities($tenantId, 1, 10);
 
-            // Get course progress
-            $courses = $this->dashboardService->getCourseProgress($tenantId);
+            // Get course progress (limited to 5 for dashboard overview)
+            $courses = $this->dashboardService->getCourseProgress($tenantId, 1, 5);
 
-            // Get user progress
-            $users = $this->dashboardService->getUserProgress($tenantId);
+            // Get user progress (limited to 5 for dashboard overview)
+            $users = $this->dashboardService->getUserProgress($tenantId, 1, 5);
 
             // Get payment stats
             $payments = $this->dashboardService->getPaymentStats($tenantId);
 
+            // Get chart data
+            $chartData = $this->dashboardService->getChartData($tenantId);
+
             return $this->successResponse([
-                'statistics' => $stats->toArray(),
-                'recent_activities' => $activities->map(fn($activity) => $activity->toArray())->toArray(),
-                'course_progress' => $courses->map(fn($course) => $course->toArray())->toArray(),
-                'user_progress' => $users->map(fn($user) => $user->toArray())->toArray(),
+                'overview' => [
+                    'statistics' => $stats->toArray(),
+                    'charts' => $chartData->toArray(),
+                    'quick_stats' => [
+                        'completion_rate' => $stats->courseCompletionRate,
+                        'active_users' => $stats->activeUsers,
+                        'pending_enrollments' => $stats->pendingEnrollments,
+                        'revenue_growth' => $payments->revenueGrowth,
+                    ],
+                ],
+                'recent_activities' => $activities->getCollection()->map(fn($activity) => $activity->toArray())->toArray(),
+                'course_progress' => $courses->getCollection()->map(fn($course) => $course->toArray())->toArray(),
+                'user_progress' => $users->getCollection()->map(fn($user) => $user->toArray())->toArray(),
                 'payment_stats' => $payments->toArray(),
+                'meta' => [
+                    'activities_pagination' => [
+                        'current_page' => $activities->currentPage(),
+                        'per_page' => $activities->perPage(),
+                        'total' => $activities->total(),
+                        'has_more' => $activities->hasMorePages(),
+                    ],
+                    'courses_pagination' => [
+                        'current_page' => $courses->currentPage(),
+                        'per_page' => $courses->perPage(),
+                        'total' => $courses->total(),
+                        'has_more' => $courses->hasMorePages(),
+                    ],
+                    'users_pagination' => [
+                        'current_page' => $users->currentPage(),
+                        'per_page' => $users->perPage(),
+                        'total' => $users->total(),
+                        'has_more' => $users->hasMorePages(),
+                    ],
+                ],
             ], 'Dashboard data retrieved successfully');
         } catch (\Exception $e) {
             Log::error('Error retrieving dashboard data', [
@@ -90,17 +122,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get recent activity
+     * Get recent activity with pagination
      */
     public function getActivity(DashboardRequest $request): JsonResponse
     {
         try {
             $tenantId = $this->getTenantId();
-            $activities = $this->dashboardService->getRecentActivities($tenantId);
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 15);
 
-            return $this->successResponse(
-                data: $activities->map(fn($activity) => $activity->toArray())->toArray(),
-                message: 'Recent activity retrieved successfully'
+            $activities = $this->dashboardService->getRecentActivities($tenantId, $page, $perPage);
+
+            return $this->successPaginated(
+                $activities,
+                'Recent activity retrieved successfully'
             );
         } catch (\Exception $e) {
             Log::error('Dashboard activity error', [
@@ -117,17 +152,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get course progress data
+     * Get course progress data with pagination
      */
     public function getCourses(DashboardRequest $request): JsonResponse
     {
         try {
             $tenantId = $this->getTenantId();
-            $courses = $this->dashboardService->getCourseProgress($tenantId);
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 15);
 
-            return $this->successResponse(
-                data: $courses->map(fn($course) => $course->toArray())->toArray(),
-                message: 'Course progress retrieved successfully'
+            $courses = $this->dashboardService->getCourseProgress($tenantId, $page, $perPage);
+
+            return $this->successPaginated(
+                $courses,
+                'Course progress retrieved successfully'
             );
         } catch (\Exception $e) {
             Log::error('Dashboard courses error', [
@@ -144,17 +182,20 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get user progress data
+     * Get user progress data with pagination
      */
     public function getUsers(DashboardRequest $request): JsonResponse
     {
         try {
             $tenantId = $this->getTenantId();
-            $users = $this->dashboardService->getUserProgress($tenantId);
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 15);
 
-            return $this->successResponse(
-                data: $users->map(fn($user) => $user->toArray())->toArray(),
-                message: 'User progress retrieved successfully'
+            $users = $this->dashboardService->getUserProgress($tenantId, $page, $perPage);
+
+            return $this->successPaginated(
+                $users,
+                'User progress retrieved successfully'
             );
         } catch (\Exception $e) {
             Log::error('Dashboard users error', [
@@ -222,10 +263,10 @@ class DashboardController extends Controller
     {
         try {
             $tenantId = $this->getTenantId();
+            $chartData = $this->dashboardService->getChartData($tenantId);
 
-            // For now, return a simple response. This can be expanded with a dedicated service method
             return $this->successResponse(
-                data: [],
+                data: $chartData->toArray(),
                 message: 'Chart data retrieved successfully'
             );
         } catch (\Exception $e) {
@@ -237,6 +278,91 @@ class DashboardController extends Controller
 
             return $this->errorResponse(
                 message: 'Failed to retrieve chart data',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Get dashboard overview with optimized structure for frontend
+     */
+    public function overview(DashboardRequest $request): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+
+            // Get all data concurrently
+            $stats = $this->dashboardService->getDashboardStats($tenantId);
+            $chartData = $this->dashboardService->getChartData($tenantId);
+            $activities = $this->dashboardService->getRecentActivities($tenantId, 5); // Only 5 for overview
+            $payments = $this->dashboardService->getPaymentStats($tenantId);
+
+            return $this->successResponse([
+                'cards' => [
+                    'main_stats' => [
+                        [
+                            'title' => 'Total Users',
+                            'value' => $stats->totalUsers,
+                            'description' => 'Active learners',
+                            'icon' => 'users',
+                            'trend' => [
+                                'value' => $stats->userGrowthRate,
+                                'isPositive' => $stats->userGrowthRate >= 0,
+                            ],
+                        ],
+                        [
+                            'title' => 'Total Courses',
+                            'value' => $stats->totalCourses,
+                            'description' => 'Available courses',
+                            'icon' => 'book',
+                        ],
+                        [
+                            'title' => 'Total Enrollments',
+                            'value' => $stats->totalEnrollments,
+                            'description' => 'Course enrollments',
+                            'icon' => 'clipboard-list',
+                        ],
+                        [
+                            'title' => 'Revenue',
+                            'value' => '$' . number_format($stats->totalRevenue),
+                            'description' => 'Total revenue',
+                            'icon' => 'currency-dollar',
+                        ],
+                    ],
+                    'quick_stats' => [
+                        'completion_rate' => $stats->courseCompletionRate,
+                        'active_users' => $stats->activeUsers,
+                        'pending_enrollments' => $stats->pendingEnrollments,
+                        'revenue_growth' => $payments->revenueGrowth,
+                    ],
+                ],
+                'charts' => [
+                    'enrollment_trends' => $chartData->enrollmentTrends,
+                    'completion_trends' => $chartData->completionTrends,
+                    'revenue_trends' => $chartData->revenueTrends,
+                    'category_distribution' => $chartData->categoryDistribution,
+                    'user_activity_trends' => $chartData->userActivityTrends,
+                    'monthly_stats' => $chartData->monthlyStats,
+                ],
+                'recent_activities' => $activities->getCollection()->map(fn($activity) => $activity->toArray())->toArray(),
+                'layout' => [
+                    'grid' => [
+                        'main_stats' => ['span' => 'full', 'cols' => 4],
+                        'charts' => ['span' => 4, 'priority' => 1],
+                        'recent_activities' => ['span' => 4, 'priority' => 2],
+                        'quick_stats' => ['span' => 3, 'priority' => 3],
+                    ],
+                ],
+            ], 'Dashboard overview retrieved successfully');
+        } catch (\Exception $e) {
+            Log::error('Error retrieving dashboard overview', [
+                'error' => $e->getMessage(),
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve dashboard overview',
                 code: 500
             );
         }

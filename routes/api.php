@@ -65,6 +65,7 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard routes
         Route::get('dashboard', [App\Http\Controllers\Api\DashboardController::class, 'index']);
+        Route::get('dashboard/overview', [App\Http\Controllers\Api\DashboardController::class, 'overview']);
         Route::get('dashboard/chart-data', [App\Http\Controllers\Api\DashboardController::class, 'getChartData']);
         Route::get('dashboard/stats', [App\Http\Controllers\Api\DashboardController::class, 'getStats']);
         Route::get('dashboard/activity', [App\Http\Controllers\Api\DashboardController::class, 'getActivity']);
