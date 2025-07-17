@@ -30,6 +30,12 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'tenant.access'])->group(function () {
         Route::get('user', [App\Http\Controllers\Api\AuthController::class, 'user']);
 
+        // Theme routes (at root level)
+        Route::prefix('theme')->group(function () {
+            Route::get('color-palettes', [App\Http\Controllers\Api\TenantSettingsController::class, 'getColorPalettes']);
+            Route::get('presets', [App\Http\Controllers\Api\TenantSettingsController::class, 'getPresetThemes']);
+        });
+
         // Tenant management routes
         Route::get('tenants', [App\Http\Controllers\Api\TenantController::class, 'index']); // Super admin only
         Route::get('tenants/current', [App\Http\Controllers\Api\TenantController::class, 'current']);
