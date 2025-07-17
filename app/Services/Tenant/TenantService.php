@@ -5,10 +5,19 @@ namespace App\Services\Tenant;
 use App\DTOs\Tenant\UpdateTenantSettingsDTO;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Cache\CacheManager;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class TenantService
 {
+    protected CacheManager $cacheManager;
+
+    public function __construct(CacheManager $cacheManager)
+    {
+        $this->cacheManager = $cacheManager;
+    }
+
     /**
      * Find tenant by ID
      */
@@ -22,7 +31,9 @@ class TenantService
      */
     public function findByDomain(string $domain): ?Tenant
     {
-        return Tenant::where('domain', $domain)->first();
+        return Cache::remember("tenant_domain_{$domain}", 3600, function () use ($domain) {
+            return Tenant::where('domain', $domain)->first();
+        });
     }
 
     /**
@@ -57,6 +68,13 @@ class TenantService
             $mergedSettings = array_merge($currentSettings, $dto->settings);
 
             $tenant->update(['settings' => $mergedSettings]);
+
+            // Clear cache for this tenant using cache manager
+            $this->cacheManager->clearTenantCache($tenant->id);
+            
+            // Also clear specific tenant cache keys
+            Cache::forget("tenant_domain_{$tenant->domain}");
+            Cache::forget("tenant_settings_{$tenant->domain}");
 
             Log::info('Tenant settings updated successfully', [
                 'tenant_id' => $tenant->id,
@@ -98,11 +116,12 @@ class TenantService
      */
     public function getTenantWithDefaultSettings(string $domain): array
     {
-        $tenant = $this->findByDomain($domain);
+        return Cache::remember("tenant_settings_{$domain}", 3600, function () use ($domain) {
+            $tenant = $this->findByDomain($domain);
 
-        if (!$tenant) {
-            return [];
-        }
+            if (!$tenant) {
+                return [];
+            }
 
         // Ensure all required settings keys exist with defaults
         $defaultSettings = [
@@ -154,5 +173,6 @@ class TenantService
             'domain' => $tenant->domain,
             'settings' => $settings,
         ];
+        });
     }
 }

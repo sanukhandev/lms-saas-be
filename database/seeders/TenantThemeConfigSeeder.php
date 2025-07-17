@@ -127,7 +127,18 @@ class TenantThemeConfigSeeder extends Seeder
             ];
 
             // If tenant has existing settings, merge with defaults
-            $existingSettings = $tenant->settings ?: [];
+            // Handle settings casting - ensure it's an array
+            $existingSettings = [];
+            if ($tenant->settings) {
+                if (is_string($tenant->settings)) {
+                    // Try to decode JSON if it's a string
+                    $decoded = json_decode($tenant->settings, true);
+                    $existingSettings = is_array($decoded) ? $decoded : [];
+                } elseif (is_array($tenant->settings)) {
+                    $existingSettings = $tenant->settings;
+                }
+            }
+            
             $mergedSettings = array_merge($defaultThemeConfig, $existingSettings);
 
             // Update tenant with theme configuration

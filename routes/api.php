@@ -120,6 +120,19 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{user}', [App\Http\Controllers\Api\UserController::class, 'destroy']);
         });
 
+        // Cache Management Routes (Admin only)
+        Route::prefix('cache')->group(function () {
+            Route::get('/stats', [App\Http\Controllers\Api\CacheController::class, 'stats']);
+            Route::post('/clear/tenant', [App\Http\Controllers\Api\CacheController::class, 'clearTenantCache']);
+            Route::post('/warmup/tenant', [App\Http\Controllers\Api\CacheController::class, 'warmUpTenantCache']);
+            Route::get('/keys', [App\Http\Controllers\Api\CacheController::class, 'getKeys']);
+            Route::get('/value', [App\Http\Controllers\Api\CacheController::class, 'getValue']);
+            Route::post('/value', [App\Http\Controllers\Api\CacheController::class, 'setValue']);
+            Route::delete('/key', [App\Http\Controllers\Api\CacheController::class, 'deleteKey']);
+            Route::post('/flush', [App\Http\Controllers\Api\CacheController::class, 'flushAll']);
+            Route::post('/clear-expired', [App\Http\Controllers\Api\CacheController::class, 'clearExpired']);
+        });
+
         // Add other protected routes here
     });
 });
