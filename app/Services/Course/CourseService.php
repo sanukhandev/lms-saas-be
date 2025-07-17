@@ -22,7 +22,7 @@ class CourseService extends BaseCacheService
             $query = Course::query();
 
             if ($withRelations) {
-                $query->with(['category', 'instructor', 'contents', 'users']);
+                $query->with(['category', 'contents', 'users']);
             }
 
             return $query->find($courseId);
@@ -38,7 +38,7 @@ class CourseService extends BaseCacheService
 
         return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $filters) {
             $query = Course::where('tenant_id', $tenantId)
-                ->with(['category', 'instructor']);
+                ->with(['category']);
 
             if (isset($filters['status'])) {
                 $query->where('is_active', $filters['status'] === 'active');

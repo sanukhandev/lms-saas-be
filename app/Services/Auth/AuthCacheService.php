@@ -17,7 +17,7 @@ class AuthCacheService extends BaseCacheService
         $cacheKey = $this->getUserCacheKey('user_detail', $userId);
 
         return Cache::remember($cacheKey, $this->defaultTtl, function () use ($userId) {
-            return User::with(['tenant', 'roles', 'permissions'])->find($userId);
+            return User::with(['tenant'])->find($userId);
         });
     }
 
@@ -37,7 +37,7 @@ class AuthCacheService extends BaseCacheService
                 $query->where('tenant_id', $tenantId);
             }
 
-            return $query->with(['tenant', 'roles', 'permissions'])->first();
+            return $query->with(['tenant'])->first();
         });
     }
 
@@ -70,44 +70,54 @@ class AuthCacheService extends BaseCacheService
     }
 
     /**
-     * Get user permissions with caching
+     * Get user permissions with caching (simplified - uses role)
      */
     public function getUserPermissions(int $userId): array
     {
         $cacheKey = $this->getUserCacheKey('permissions', $userId);
 
         return Cache::remember($cacheKey, $this->longTtl, function () use ($userId) {
-            $user = User::with(['roles.permissions', 'permissions'])->find($userId);
+            $user = User::find($userId);
 
             if (!$user) {
                 return [];
             }
 
-            $permissions = collect();
-
-            // Direct permissions
-            $permissions = $permissions->merge($user->permissions->pluck('name'));
-
-            // Role-based permissions
-            foreach ($user->roles as $role) {
-                $permissions = $permissions->merge($role->permissions->pluck('name'));
+            // Return basic permissions based on role
+            $permissions = [];
+            switch ($user->role) {
+                case 'super_admin':
+                    $permissions = ['*']; // All permissions
+                    break;
+                case 'admin':
+                    $permissions = ['manage_users', 'manage_courses', 'view_reports'];
+                    break;
+                case 'staff':
+                    $permissions = ['manage_courses', 'view_reports'];
+                    break;
+                case 'tutor':
+                    $permissions = ['manage_own_courses', 'view_students'];
+                    break;
+                case 'student':
+                    $permissions = ['view_courses', 'take_courses'];
+                    break;
             }
 
-            return $permissions->unique()->toArray();
+            return $permissions;
         });
     }
 
     /**
-     * Get user roles with caching
+     * Get user roles with caching (simplified - single role)
      */
     public function getUserRoles(int $userId): array
     {
         $cacheKey = $this->getUserCacheKey('roles', $userId);
 
         return Cache::remember($cacheKey, $this->longTtl, function () use ($userId) {
-            $user = User::with('roles')->find($userId);
+            $user = User::find($userId);
 
-            return $user ? $user->roles->pluck('name')->toArray() : [];
+            return $user ? [$user->role] : [];
         });
     }
 
