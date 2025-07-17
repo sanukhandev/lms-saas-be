@@ -165,12 +165,8 @@ class CacheManager
     public function getCacheStats(): array
     {
         try {
-            $redis = Cache::getRedis();
-            
-            // Handle Laravel RedisManager
-            if ($redis instanceof \Illuminate\Redis\RedisManager) {
-                $redis = $redis->connection();
-            }
+            // Use the cache connection directly
+            $redis = app('redis')->connection('cache');
             
             // Handle predis client
             if ($redis instanceof \Predis\Client) {
