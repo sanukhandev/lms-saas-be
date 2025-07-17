@@ -134,7 +134,19 @@ class TenantService
             ],
         ];
 
-        $settings = array_merge($defaultSettings, $tenant->settings ?? []);
+        // Handle settings casting - ensure it's an array
+        $tenantSettings = [];
+        if ($tenant->settings) {
+            if (is_string($tenant->settings)) {
+                // Try to decode JSON if it's a string
+                $decoded = json_decode($tenant->settings, true);
+                $tenantSettings = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($tenant->settings)) {
+                $tenantSettings = $tenant->settings;
+            }
+        }
+
+        $settings = array_merge($defaultSettings, $tenantSettings);
 
         return [
             'id' => $tenant->id,
