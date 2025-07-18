@@ -114,6 +114,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/', [App\Http\Controllers\Api\CategoryController::class, 'store']);
             Route::get('/tree', [App\Http\Controllers\Api\CategoryController::class, 'tree']);
             Route::get('/dropdown', [App\Http\Controllers\Api\CategoryController::class, 'dropdown']);
+            Route::get('/statistics', [App\Http\Controllers\Api\CategoryController::class, 'statistics']);
             Route::get('/{category}', [App\Http\Controllers\Api\CategoryController::class, 'show']);
             Route::put('/{category}', [App\Http\Controllers\Api\CategoryController::class, 'update']);
             Route::delete('/{category}', [App\Http\Controllers\Api\CategoryController::class, 'destroy']);

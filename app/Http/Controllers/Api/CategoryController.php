@@ -4,16 +4,68 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
+    /**
+     * Get statistics for categories
+     */
+    public function statistics(Request $request): JsonResponse
+    {
+        try {
+            $tenantId = Auth::user()->tenant_id;
+            $totalCategories = Category::where('tenant_id', $tenantId)->count();
+            $rootCategories = Category::where('tenant_id', $tenantId)->whereNull('parent_id')->count();
+
+            // Get all category IDs for this tenant
+            $categoryIds = Category::where('tenant_id', $tenantId)->pluck('id');
+
+            // Total courses in all categories
+            $totalCourses = 0;
+            $totalStudents = 0;
+            if ($categoryIds->count() > 0) {
+                $courses = Course::where('tenant_id', $tenantId)
+                    ->whereIn('category_id', $categoryIds)
+                    ->get();
+                $totalCourses = $courses->count();
+                try {
+                    $totalStudents = $courses->sum(function ($course) {
+                        return $course->students()->count();
+                    });
+                } catch (\Throwable $e) {
+                    Log::error('Error counting students in statistics: ' . $e->getMessage());
+                    $totalStudents = 0;
+                }
+            }
+
+            $avgCoursesPerCategory = $totalCategories > 0 ? round($totalCourses / $totalCategories, 2) : 0.0;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'totalCategories' => $totalCategories,
+                    'rootCategories' => $rootCategories,
+                    'totalCourses' => $totalCourses,
+                    'totalStudents' => $totalStudents,
+                    'avgCoursesPerCategory' => $avgCoursesPerCategory,
+                ],
+                'message' => 'Category statistics retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error retrieving category statistics: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving category statistics'
+            ], 500);
+        }
+    }
     /**
      * Display a listing of categories
      */
@@ -69,7 +121,6 @@ class CategoryController extends Controller
                 'data' => $categories,
                 'message' => 'Categories retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error retrieving categories: ' . $e->getMessage());
             return response()->json([
@@ -137,7 +188,6 @@ class CategoryController extends Controller
                 'data' => $category,
                 'message' => 'Category created successfully'
             ], 201);
-
         } catch (\Exception $e) {
             Log::error('Error creating category: ' . $e->getMessage());
             return response()->json([
@@ -191,7 +241,6 @@ class CategoryController extends Controller
                 'data' => $category,
                 'message' => 'Category retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error retrieving category: ' . $e->getMessage());
             return response()->json([
@@ -264,17 +313,18 @@ class CategoryController extends Controller
             // Update slug if name changed
             if ($request->has('name') && $request->name !== $category->name) {
                 $slug = $request->slug ?? Str::slug($request->name);
-                
+
                 // Ensure slug is unique within tenant
                 $originalSlug = $slug;
                 $counter = 1;
                 while (Category::where('tenant_id', Auth::user()->tenant_id)
                     ->where('slug', $slug)
                     ->where('id', '!=', $category->id)
-                    ->exists()) {
+                    ->exists()
+                ) {
                     $slug = $originalSlug . '-' . $counter++;
                 }
-                
+
                 $updateData['slug'] = $slug;
             }
 
@@ -286,7 +336,6 @@ class CategoryController extends Controller
                 'data' => $category,
                 'message' => 'Category updated successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error updating category: ' . $e->getMessage());
             return response()->json([
@@ -332,7 +381,6 @@ class CategoryController extends Controller
                 'success' => true,
                 'message' => 'Category deleted successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error deleting category: ' . $e->getMessage());
             return response()->json([
@@ -361,7 +409,6 @@ class CategoryController extends Controller
                 'data' => $categories,
                 'message' => 'Category tree retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error retrieving category tree: ' . $e->getMessage());
             return response()->json([
@@ -386,7 +433,6 @@ class CategoryController extends Controller
                 'data' => $categories,
                 'message' => 'Categories for dropdown retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error retrieving categories for dropdown: ' . $e->getMessage());
             return response()->json([
@@ -402,14 +448,14 @@ class CategoryController extends Controller
     private function wouldCreateCircularReference(Category $category, int $newParentId): bool
     {
         $currentCategory = Category::find($newParentId);
-        
+
         while ($currentCategory) {
             if ($currentCategory->id === $category->id) {
                 return true;
             }
             $currentCategory = $currentCategory->parent;
         }
-        
+
         return false;
     }
 }
