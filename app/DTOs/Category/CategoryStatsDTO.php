@@ -16,6 +16,11 @@ class CategoryStatsDTO
     public function toArray(): array
     {
         return [
+            'totalCategories' => $this->totalCategories,
+            'rootCategories' => $this->rootCategories,
+            'activeCourses' => $this->categoriesWithCourses, // Map to what frontend expects
+            'averageCoursesPerCategory' => $this->avgCoursesPerCategory,
+            // Keep original fields for backward compatibility
             'total_categories' => $this->totalCategories,
             'active_categories' => $this->activeCategories,
             'root_categories' => $this->rootCategories,

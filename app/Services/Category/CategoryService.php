@@ -63,9 +63,9 @@ class CategoryService
             // Get paginated results
             $categories = $query->paginate($perPage, ['*'], 'page', $page);
 
-            // Transform to DTOs
+            // Transform to DTOs and convert to arrays
             $categoryDTOs = $categories->getCollection()->map(function ($category) use ($tenantId) {
-                return $this->transformCategoryToDTO($category, $tenantId);
+                return $this->transformCategoryToDTO($category, $tenantId)->toArray();
             });
 
             return new LengthAwarePaginator(
@@ -308,11 +308,43 @@ class CategoryService
             fn() => $category->courses()->count()
         );
 
+        // Get active courses count (cached)
+        $activeCoursesCount = Cache::remember(
+            "category_active_courses_count_{$category->id}_{$tenantId}",
+            self::CACHE_TTL,
+            fn() => $category->courses()->where('is_active', true)->count()
+        );
+
         // Get children count (cached)
         $childrenCount = Cache::remember(
             "category_children_count_{$category->id}_{$tenantId}",
             self::CACHE_TTL,
             fn() => $category->children()->count()
+        );
+
+        // Get total students enrolled in category courses (cached)
+        $totalStudents = Cache::remember(
+            "category_students_count_{$category->id}_{$tenantId}",
+            self::CACHE_TTL,
+            function() use ($category) {
+                try {
+                    // Check if enrollments table exists
+                    $tableExists = DB::select("SHOW TABLES LIKE 'enrollments'");
+                    if (empty($tableExists)) {
+                        return 0; // Return 0 if table doesn't exist
+                    }
+                    
+                    return DB::table('enrollments')
+                        ->join('courses', 'enrollments.course_id', '=', 'courses.id')
+                        ->where('courses.category_id', $category->id)
+                        ->where('enrollments.status', 'active')
+                        ->distinct('enrollments.user_id')
+                        ->count('enrollments.user_id');
+                } catch (\Exception $e) {
+                    // If any error occurs (like table doesn't exist), return 0
+                    return 0;
+                }
+            }
         );
 
         return new CategoryDTO(
@@ -328,6 +360,8 @@ class CategoryService
             metaDescription: $category->meta_description,
             coursesCount: $coursesCount,
             childrenCount: $childrenCount,
+            activeCoursesCount: $activeCoursesCount,
+            totalStudents: $totalStudents,
             createdAt: $category->created_at,
             updatedAt: $category->updated_at
         );
