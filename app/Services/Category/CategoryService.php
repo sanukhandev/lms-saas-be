@@ -328,18 +328,18 @@ class CategoryService
             self::CACHE_TTL,
             function() use ($category) {
                 try {
-                    // Check if enrollments table exists
-                    $tableExists = DB::select("SHOW TABLES LIKE 'enrollments'");
+                    // Check if course_user table exists
+                    $tableExists = DB::select("SHOW TABLES LIKE 'course_user'");
                     if (empty($tableExists)) {
                         return 0; // Return 0 if table doesn't exist
                     }
                     
-                    return DB::table('enrollments')
-                        ->join('courses', 'enrollments.course_id', '=', 'courses.id')
+                    return DB::table('course_user')
+                        ->join('courses', 'course_user.course_id', '=', 'courses.id')
                         ->where('courses.category_id', $category->id)
-                        ->where('enrollments.status', 'active')
-                        ->distinct('enrollments.user_id')
-                        ->count('enrollments.user_id');
+                        ->where('course_user.role', 'student')
+                        ->distinct('course_user.user_id')
+                        ->count('course_user.user_id');
                 } catch (\Exception $e) {
                     // If any error occurs (like table doesn't exist), return 0
                     return 0;
