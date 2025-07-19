@@ -108,6 +108,52 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'destroy']);
         });
 
+        // Course Builder Routes
+        Route::prefix('course-builder')->group(function () {
+            Route::get('/{courseId}/structure', [App\Http\Controllers\Api\CourseBuilderController::class, 'getCourseStructure']);
+            Route::post('/{courseId}/modules', [App\Http\Controllers\Api\CourseBuilderController::class, 'createModule']);
+            Route::put('/{courseId}/modules/{moduleId}', [App\Http\Controllers\Api\CourseBuilderController::class, 'updateModule']);
+            Route::delete('/{courseId}/modules/{moduleId}', [App\Http\Controllers\Api\CourseBuilderController::class, 'deleteModule']);
+            Route::post('/{courseId}/modules/{moduleId}/chapters', [App\Http\Controllers\Api\CourseBuilderController::class, 'createChapter']);
+            Route::put('/{courseId}/modules/{moduleId}/chapters/{chapterId}', [App\Http\Controllers\Api\CourseBuilderController::class, 'updateChapter']);
+            Route::delete('/{courseId}/modules/{moduleId}/chapters/{chapterId}', [App\Http\Controllers\Api\CourseBuilderController::class, 'deleteChapter']);
+            Route::post('/{courseId}/reorder', [App\Http\Controllers\Api\CourseBuilderController::class, 'reorderContent']);
+            Route::get('/{courseId}/pricing', [App\Http\Controllers\Api\CourseBuilderController::class, 'getCoursePricing']);
+            Route::put('/{courseId}/pricing', [App\Http\Controllers\Api\CourseBuilderController::class, 'updateCoursePricing']);
+            Route::get('/access-models', [App\Http\Controllers\Api\CourseBuilderController::class, 'getSupportedAccessModels']);
+            Route::post('/{courseId}/publish', [App\Http\Controllers\Api\CourseBuilderController::class, 'publishCourse']);
+            Route::post('/{courseId}/unpublish', [App\Http\Controllers\Api\CourseBuilderController::class, 'unpublishCourse']);
+        });
+
+        // Course Builder Routes
+        Route::prefix('course-builder')->group(function () {
+            Route::get('/{course}/structure', [App\Http\Controllers\Api\CourseBuilderController::class, 'getCourseStructure']);
+            
+            // Module management
+            Route::post('/{course}/modules', [App\Http\Controllers\Api\CourseBuilderController::class, 'createModule']);
+            Route::put('/modules/{module}', [App\Http\Controllers\Api\CourseBuilderController::class, 'updateModule']);
+            Route::delete('/modules/{module}', [App\Http\Controllers\Api\CourseBuilderController::class, 'deleteModule']);
+            
+            // Chapter management
+            Route::post('/modules/{module}/chapters', [App\Http\Controllers\Api\CourseBuilderController::class, 'createChapter']);
+            Route::put('/chapters/{chapter}', [App\Http\Controllers\Api\CourseBuilderController::class, 'updateChapter']);
+            Route::delete('/chapters/{chapter}', [App\Http\Controllers\Api\CourseBuilderController::class, 'deleteChapter']);
+            
+            // Content reordering
+            Route::post('/{course}/reorder', [App\Http\Controllers\Api\CourseBuilderController::class, 'reorderContent']);
+            
+            // Publishing
+            Route::post('/{course}/publish', [App\Http\Controllers\Api\CourseBuilderController::class, 'publishCourse']);
+            Route::post('/{course}/unpublish', [App\Http\Controllers\Api\CourseBuilderController::class, 'unpublishCourse']);
+            
+            // Pricing management
+            Route::get('/{course}/pricing', [App\Http\Controllers\Api\CourseBuilderController::class, 'getCoursePricing']);
+            Route::put('/{course}/pricing', [App\Http\Controllers\Api\CourseBuilderController::class, 'updateCoursePricing']);
+            Route::get('/{course}/pricing/local', [App\Http\Controllers\Api\CourseBuilderController::class, 'getLocalPricing']);
+            Route::post('/pricing/bulk', [App\Http\Controllers\Api\CourseBuilderController::class, 'getBulkPricing']);
+            Route::post('/{course}/pricing/validate', [App\Http\Controllers\Api\CourseBuilderController::class, 'validatePricing']);
+        });
+
         // Category Management Routes
         Route::prefix('categories')->group(function () {
             Route::get('/', [App\Http\Controllers\Api\CategoryController::class, 'index']);

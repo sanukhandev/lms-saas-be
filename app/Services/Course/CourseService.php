@@ -30,7 +30,7 @@ class CourseService
         $cacheKey = "courses_list_{$tenantId}_" . md5(serialize($filters) . "_{$page}_{$perPage}");
         
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($tenantId, $filters, $page, $perPage) {
-            $query = Course::with(['category', 'instructor'])
+            $query = Course::with(['category', 'instructors'])
                           ->where('tenant_id', $tenantId);
 
             // Apply filters
@@ -346,25 +346,25 @@ class CourseService
             id: $course->id,
             title: $course->title,
             description: $course->description,
-            shortDescription: $course->short_description,
-            slug: $course->slug,
+            shortDescription: $course->short_description ?? null,
+            slug: $course->slug ?? \Illuminate\Support\Str::slug($course->title),
             categoryId: $course->category_id,
             categoryName: $course->category?->name,
-            instructorId: $course->instructor_id,
+            instructorId: $course->instructor_id ?? null,
             instructorName: $course->instructor?->name,
-            price: $course->price,
-            currency: $course->currency,
-            level: $course->level,
-            durationHours: $course->duration_hours,
-            status: $course->status,
+            price: $course->price ?? 0.0,
+            currency: $course->currency ?? 'USD',
+            level: $course->level ?? 'beginner',
+            durationHours: $course->duration_hours ?? null,
+            status: $course->status ?? 'draft',
             isActive: $course->is_active,
-            thumbnailUrl: $course->thumbnail_url,
-            previewVideoUrl: $course->preview_video_url,
-            requirements: $course->requirements,
-            whatYouWillLearn: $course->what_you_will_learn,
-            metaDescription: $course->meta_description,
-            tags: $course->tags,
-            averageRating: $course->average_rating,
+            thumbnailUrl: $course->thumbnail_url ?? null,
+            previewVideoUrl: $course->preview_video_url ?? null,
+            requirements: $course->requirements ?? null,
+            whatYouWillLearn: $course->what_you_will_learn ?? null,
+            metaDescription: $course->meta_description ?? null,
+            tags: $course->tags ?? null,
+            averageRating: $course->average_rating ?? null,
             enrollmentCount: $enrollmentCount,
             completionRate: $completionRate,
             contentCount: $contentCount,
