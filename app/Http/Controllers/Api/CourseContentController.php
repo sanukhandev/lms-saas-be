@@ -3,430 +3,209 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Course;
-use App\Models\CourseContent;
-use Illuminate\Http\Request;
+use App\Http\Requests\CourseContent\StoreCourseContentRequest;
+use App\Http\Requests\CourseContent\UpdateCourseContentRequest;
+use App\Http\Requests\CourseContent\ReorderCourseContentRequest;
+use App\Services\CourseContent\CourseContentService;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class CourseContentController extends Controller
 {
+    use ApiResponseTrait;
+
+    public function __construct(
+        private readonly CourseContentService $courseContentService
+    ) {}
+
     /**
      * Display a listing of course content
      */
-    public function index(Request $request, Course $course): JsonResponse
+    public function index(Request $request, int $courseId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $filters = [
+                'status' => $request->get('status'),
+                'type' => $request->get('type'),
+                'search' => $request->get('search'),
+                'per_page' => $request->get('per_page', 15)
+            ];
+
+            $result = $this->courseContentService->getContentList($courseId, $filters);
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 404);
             }
 
-            $query = CourseContent::where('course_id', $course->id)
-                ->where('tenant_id', Auth::user()->tenant_id);
-
-            // Filter by parent (get root items or children of specific parent)
-            if ($request->filled('parent_id')) {
-                $query->where('parent_id', $request->parent_id);
-            } else {
-                $query->whereNull('parent_id');
-            }
-
-            // Filter by content type
-            if ($request->filled('type')) {
-                $query->where('type', $request->type);
-            }
-
-            // Include children if requested
-            if ($request->boolean('include_children')) {
-                $query->with(['children' => function ($q) {
-                    $q->orderBy('position');
-                }]);
-            }
-
-            // Sorting
-            $sortBy = $request->get('sort_by', 'position');
-            $sortOrder = $request->get('sort_order', 'asc');
-            $query->orderBy($sortBy, $sortOrder);
-
-            $content = $query->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => $content,
-                'message' => 'Course content retrieved successfully'
-            ]);
+            return $this->successResponse($result['data']);
 
         } catch (\Exception $e) {
-            Log::error('Error retrieving course content: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving course content'
-            ], 500);
+            Log::error('CourseContentController@index failed', [
+                'course_id' => $courseId,
+                'filters' => $filters ?? [],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to fetch course content');
         }
     }
 
     /**
      * Store a newly created course content
      */
-    public function store(Request $request, Course $course): JsonResponse
+    public function store(StoreCourseContentRequest $request, int $courseId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $result = $this->courseContentService->createContent($courseId, $request->validated());
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 400);
             }
 
-            $validator = Validator::make($request->all(), [
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'type' => 'required|in:module,lesson,assignment,quiz,video,document,link',
-                'parent_id' => 'nullable|exists:course_contents,id',
-                'position' => 'nullable|integer|min:1',
-                'duration_mins' => 'nullable|integer|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Validate parent belongs to same course and tenant
-            if ($request->parent_id) {
-                $parent = CourseContent::where('id', $request->parent_id)
-                    ->where('course_id', $course->id)
-                    ->where('tenant_id', Auth::user()->tenant_id)
-                    ->first();
-
-                if (!$parent) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Parent content not found or does not belong to this course'
-                    ], 404);
-                }
-            }
-
-            // Auto-generate position if not provided
-            $position = $request->position;
-            if (!$position) {
-                $maxPosition = CourseContent::where('course_id', $course->id)
-                    ->where('parent_id', $request->parent_id)
-                    ->max('position') ?? 0;
-                $position = $maxPosition + 1;
-            }
-
-            $content = CourseContent::create([
-                'course_id' => $course->id,
-                'tenant_id' => Auth::user()->tenant_id,
-                'parent_id' => $request->parent_id,
-                'type' => $request->type,
-                'title' => $request->title,
-                'description' => $request->description,
-                'position' => $position,
-                'duration_mins' => $request->duration_mins ?? 0
-            ]);
-
-            $content->load(['parent', 'children']);
-
-            return response()->json([
-                'success' => true,
-                'data' => $content,
-                'message' => 'Course content created successfully'
-            ], 201);
+            return $this->successResponse($result['data'], $result['message'], 201);
 
         } catch (\Exception $e) {
-            Log::error('Error creating course content: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error creating course content'
-            ], 500);
+            Log::error('CourseContentController@store failed', [
+                'course_id' => $courseId,
+                'data' => $request->validated(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to create course content');
         }
     }
 
     /**
      * Display the specified course content
      */
-    public function show(Course $course, CourseContent $content): JsonResponse
+    public function show(int $courseId, int $contentId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $result = $this->courseContentService->getContentById($courseId, $contentId);
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 404);
             }
 
-            // Check if content belongs to the course and tenant
-            if ($content->course_id !== $course->id || $content->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Content not found'
-                ], 404);
-            }
-
-            $content->load([
-                'parent',
-                'children' => function ($query) {
-                    $query->orderBy('position');
-                },
-                'sessions'
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data' => $content,
-                'message' => 'Course content retrieved successfully'
-            ]);
+            return $this->successResponse($result['data']);
 
         } catch (\Exception $e) {
-            Log::error('Error retrieving course content: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving course content'
-            ], 500);
+            Log::error('CourseContentController@show failed', [
+                'course_id' => $courseId,
+                'content_id' => $contentId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to fetch course content');
         }
     }
 
     /**
      * Update the specified course content
      */
-    public function update(Request $request, Course $course, CourseContent $content): JsonResponse
+    public function update(UpdateCourseContentRequest $request, int $courseId, int $contentId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $result = $this->courseContentService->updateContent($courseId, $contentId, $request->validated());
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 400);
             }
 
-            // Check if content belongs to the course and tenant
-            if ($content->course_id !== $course->id || $content->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Content not found'
-                ], 404);
-            }
-
-            $validator = Validator::make($request->all(), [
-                'title' => 'sometimes|required|string|max:255',
-                'description' => 'nullable|string',
-                'type' => 'sometimes|required|in:module,lesson,assignment,quiz,video,document,link',
-                'parent_id' => 'nullable|exists:course_contents,id',
-                'position' => 'sometimes|integer|min:1',
-                'duration_mins' => 'sometimes|integer|min:0'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Validate parent belongs to same course and tenant
-            if ($request->has('parent_id') && $request->parent_id) {
-                $parent = CourseContent::where('id', $request->parent_id)
-                    ->where('course_id', $course->id)
-                    ->where('tenant_id', Auth::user()->tenant_id)
-                    ->first();
-
-                if (!$parent) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Parent content not found or does not belong to this course'
-                    ], 404);
-                }
-
-                // Prevent setting self as parent
-                if ($request->parent_id == $content->id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Content cannot be its own parent'
-                    ], 422);
-                }
-            }
-
-            $content->update($request->only([
-                'title',
-                'description',
-                'type',
-                'parent_id',
-                'position',
-                'duration_mins'
-            ]));
-
-            $content->load(['parent', 'children']);
-
-            return response()->json([
-                'success' => true,
-                'data' => $content,
-                'message' => 'Course content updated successfully'
-            ]);
+            return $this->successResponse($result['data'], $result['message']);
 
         } catch (\Exception $e) {
-            Log::error('Error updating course content: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error updating course content'
-            ], 500);
+            Log::error('CourseContentController@update failed', [
+                'course_id' => $courseId,
+                'content_id' => $contentId,
+                'data' => $request->validated(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to update course content');
         }
     }
 
     /**
      * Remove the specified course content
      */
-    public function destroy(Course $course, CourseContent $content): JsonResponse
+    public function destroy(int $courseId, int $contentId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $result = $this->courseContentService->deleteContent($courseId, $contentId);
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 404);
             }
 
-            // Check if content belongs to the course and tenant
-            if ($content->course_id !== $course->id || $content->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Content not found'
-                ], 404);
-            }
-
-            // Check if content has children
-            if ($content->children()->exists()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot delete content with child items'
-                ], 409);
-            }
-
-            $content->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Course content deleted successfully'
-            ]);
+            return $this->successResponse([], $result['message']);
 
         } catch (\Exception $e) {
-            Log::error('Error deleting course content: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error deleting course content'
-            ], 500);
+            Log::error('CourseContentController@destroy failed', [
+                'course_id' => $courseId,
+                'content_id' => $contentId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to delete course content');
         }
     }
 
     /**
-     * Reorder course content items
+     * Reorder course content
      */
-    public function reorder(Request $request, Course $course): JsonResponse
+    public function reorder(ReorderCourseContentRequest $request, int $courseId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $result = $this->courseContentService->reorderContent($courseId, $request->validated()['items']);
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 400);
             }
 
-            $validator = Validator::make($request->all(), [
-                'items' => 'required|array',
-                'items.*.id' => 'required|exists:course_contents,id',
-                'items.*.position' => 'required|integer|min:1',
-                'parent_id' => 'nullable|exists:course_contents,id'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            DB::beginTransaction();
-
-            foreach ($request->items as $item) {
-                CourseContent::where('id', $item['id'])
-                    ->where('course_id', $course->id)
-                    ->where('tenant_id', Auth::user()->tenant_id)
-                    ->update([
-                        'position' => $item['position'],
-                        'parent_id' => $request->parent_id
-                    ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Course content reordered successfully'
-            ]);
+            return $this->successResponse([], $result['message']);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error reordering course content: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error reordering course content'
-            ], 500);
+            Log::error('CourseContentController@reorder failed', [
+                'course_id' => $courseId,
+                'items' => $request->validated()['items'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to reorder course content');
         }
     }
 
     /**
-     * Get content tree structure for a course
+     * Get course content statistics
      */
-    public function tree(Course $course): JsonResponse
+    public function stats(int $courseId): JsonResponse
     {
         try {
-            // Check if course belongs to current tenant
-            if ($course->tenant_id !== Auth::user()->tenant_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Course not found'
-                ], 404);
+            $result = $this->courseContentService->getContentStats($courseId);
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], [], 404);
             }
 
-            $content = CourseContent::with(['children' => function ($query) {
-                $query->orderBy('position');
-            }])
-                ->where('course_id', $course->id)
-                ->where('tenant_id', Auth::user()->tenant_id)
-                ->whereNull('parent_id')
-                ->orderBy('position')
-                ->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => $content,
-                'message' => 'Course content tree retrieved successfully'
-            ]);
+            return $this->successResponse($result['data']);
 
         } catch (\Exception $e) {
-            Log::error('Error retrieving course content tree: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving course content tree'
-            ], 500);
+            Log::error('CourseContentController@stats failed', [
+                'course_id' => $courseId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse('Failed to fetch content statistics');
         }
     }
 }

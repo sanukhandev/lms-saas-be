@@ -150,6 +150,7 @@ class AnalyticsController extends Controller
                 data: $analytics,
                 message: 'User behavior analytics retrieved successfully'
             );
+
         } catch (\Exception $e) {
             Log::error('User behavior analytics error', [
                 'error' => $e->getMessage(),
