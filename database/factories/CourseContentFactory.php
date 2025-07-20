@@ -18,7 +18,7 @@ class CourseContentFactory extends Factory
      */
     public function definition(): array
     {
-        $types = ['module', 'chapter'];
+        $types = ['module', 'chapter']; // Match database enum
         $titles = [
             'Introduction and Overview',
             'Getting Started',

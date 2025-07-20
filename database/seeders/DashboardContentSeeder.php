@@ -41,18 +41,6 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating users...');
         
-        // Create Super Admin
-        $superAdmin = User::where('email', 'superadmin@example.com')->first();
-        if (!$superAdmin) {
-            $superAdmin = User::factory()->create([
-                'name' => 'Super Admin',
-                'email' => 'superadmin@example.com',
-                'role' => 'super_admin',
-                'tenant_id' => null,
-                'email_verified_at' => now(),
-            ]);
-        }
-
         // Create Tenant Admin
         $tenantAdmin = User::where('email', 'admin@demo.com')->first();
         if (!$tenantAdmin) {
@@ -65,51 +53,43 @@ class DashboardContentSeeder extends Seeder
             ]);
         }
 
-        // Create Staff users
-        $staff = User::factory()->count(3)->create([
+        // Create Staff Users (reduce from 3 to 2)
+        $staff = User::factory()->count(2)->create([
+            'tenant_id' => $tenant->id,
             'role' => 'staff',
-            'tenant_id' => $tenant->id,
-            'email_verified_at' => now(),
         ]);
 
-        // Create Tutors/Instructors
-        $tutors = User::factory()->count(8)->create([
+        // Create Tutors (reduce from 8 to 3)
+        $tutors = User::factory()->count(3)->create([
+            'tenant_id' => $tenant->id,
             'role' => 'tutor',
-            'tenant_id' => $tenant->id,
-            'email_verified_at' => now(),
         ]);
 
-        // Create Students
-        $students = User::factory()->count(50)->create([
-            'role' => 'student',
+        // Create Students (reduce from 50 to 15)
+        $students = User::factory()->count(15)->create([
             'tenant_id' => $tenant->id,
-            'email_verified_at' => now(),
+            'role' => 'student',
         ]);
 
         $this->command->info('Creating categories...');
         
-        // Create main categories only if they don't exist
-        $existingCategories = Category::where('tenant_id', $tenant->id)
-            ->whereNull('parent_id')
-            ->count();
-            
-        if ($existingCategories < 10) {
-            $categories = Category::factory()->count(10 - $existingCategories)->create([
+        // Create Categories (reduce from 10 to 5)
+        $existingCategories = Category::where('tenant_id', $tenant->id)->whereNull('parent_id')->count();
+        if ($existingCategories < 5) {
+            $categories = Category::factory()->count(5 - $existingCategories)->create([
                 'tenant_id' => $tenant->id,
+                'parent_id' => null,
             ]);
         } else {
-            $categories = Category::where('tenant_id', $tenant->id)
-                ->whereNull('parent_id')
-                ->take(10)
-                ->get();
+            $categories = Category::where('tenant_id', $tenant->id)->whereNull('parent_id')->get();
         }
 
-        // Create subcategories
+        // Create subcategories (reduce from 3 to 2 per category)
         $subcategories = [];
-        foreach ($categories->take(5) as $category) {
-            $existingSubs = Category::where('parent_id', $category->id)->count();
-            if ($existingSubs < 3) {
-                $subs = Category::factory()->count(3 - $existingSubs)->create([
+        foreach ($categories as $category) {
+            $existingSubs = Category::where('tenant_id', $tenant->id)->where('parent_id', $category->id)->count();
+            if ($existingSubs < 2) {
+                $subs = Category::factory()->count(2 - $existingSubs)->create([
                     'tenant_id' => $tenant->id,
                     'parent_id' => $category->id,
                 ]);
@@ -119,8 +99,8 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating courses...');
         
-        // Create courses
-        $courses = Course::factory()->count(25)->create([
+        // Create courses (reduce from 25 to 8)
+        $courses = Course::factory()->count(8)->create([
             'tenant_id' => $tenant->id,
             'category_id' => function () use ($categories, $subcategories) {
                 $allCategories = array_merge($categories->toArray(), $subcategories);
@@ -130,9 +110,9 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating course content...');
         
-        // Create course content
+        // Create course content (reduce from 5-15 to 3-6)
         foreach ($courses as $course) {
-            CourseContent::factory()->count(rand(5, 15))->create([
+            CourseContent::factory()->count(rand(3, 6))->create([
                 'course_id' => $course->id,
                 'tenant_id' => $tenant->id,
             ]);
@@ -140,9 +120,9 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating class sessions...');
         
-        // Create class sessions
+        // Create class sessions (reduce from 3-8 to 2-4)
         foreach ($courses as $course) {
-            ClassSession::factory()->count(rand(3, 8))->create([
+            ClassSession::factory()->count(rand(2, 4))->create([
                 'course_id' => $course->id,
                 'tutor_id' => $tutors->random()->id,
                 'tenant_id' => $tenant->id,
@@ -151,10 +131,10 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating exams...');
         
-        // Create exams
+        // Create exams (reduce from 2-5 to 1-2 per course)
         $exams = [];
         foreach ($courses as $course) {
-            $courseExams = Exam::factory()->count(rand(2, 5))->create([
+            $courseExams = Exam::factory()->count(rand(1, 2))->create([
                 'course_id' => $course->id,
                 'tenant_id' => $tenant->id,
             ]);
@@ -163,18 +143,18 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating exam questions...');
         
-        // Create exam questions
+        // Create exam questions (reduce from 5-20 to 3-8 per exam)
         foreach ($exams as $exam) {
-            ExamQuestion::factory()->count(rand(5, 20))->create([
+            ExamQuestion::factory()->count(rand(3, 8))->create([
                 'exam_id' => $exam['id'],
             ]);
         }
 
         $this->command->info('Creating exam results...');
         
-        // Create exam results
+        // Create exam results (reduce from 5-20 to 2-8 to fit available students)
         foreach ($exams as $exam) {
-            $examStudents = $students->random(rand(5, 20));
+            $examStudents = $students->random(rand(2, min(8, $students->count())));
             foreach ($examStudents as $student) {
                 ExamResult::factory()->create([
                     'exam_id' => $exam['id'],
@@ -193,8 +173,8 @@ class DashboardContentSeeder extends Seeder
                 $course->users()->attach($instructor->id, ['role' => 'instructor']);
             }
 
-            // Assign students to courses
-            $courseStudents = $students->random(rand(10, 30));
+            // Assign students to courses (reduce from 10-30 to 3-8 to fit available students)
+            $courseStudents = $students->random(rand(3, min(8, $students->count())));
             foreach ($courseStudents as $student) {
                 $course->users()->attach($student->id, ['role' => 'student']);
             }
@@ -238,9 +218,9 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating course purchases...');
         
-        // Create course purchases
+        // Create course purchases (reduce from 5-20 to 2-5 per course)
         foreach ($courses as $course) {
-            $purchaseCount = rand(5, 20);
+            $purchaseCount = rand(2, 5);
             $courseStudents = $students->random($purchaseCount);
             
             foreach ($courseStudents as $student) {
@@ -254,9 +234,9 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating feedback...');
         
-        // Create feedback for courses
+        // Create feedback for courses (reduce from 3-15 to 1-3 per course)
         foreach ($courses as $course) {
-            $feedbackCount = rand(3, 15);
+            $feedbackCount = rand(1, 3);
             $courseStudents = $course->users()->wherePivot('role', 'student')->get();
             
             if ($courseStudents->count() > 0) {
@@ -273,9 +253,9 @@ class DashboardContentSeeder extends Seeder
 
         $this->command->info('Creating certificates...');
         
-        // Create certificates for completed courses
+        // Create certificates for completed courses (reduce from 2-8 to 1-3 per course)
         foreach ($courses as $course) {
-            $completedStudents = $course->users()->wherePivot('role', 'student')->get()->random(rand(2, 8));
+            $completedStudents = $course->users()->wherePivot('role', 'student')->get()->random(rand(1, 3));
             
             foreach ($completedStudents as $student) {
                 Certificate::factory()->create([

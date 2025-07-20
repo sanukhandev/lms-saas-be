@@ -19,6 +19,7 @@ class DemoTenantSeeder extends Seeder
             $demoTenant = Tenant::create([
                 'name' => 'Demo Tenant',
                 'domain' => 'demo',
+                'slug' => 'demo',
                 'settings' => [
                     'timezone' => 'UTC',
                     'language' => 'en',

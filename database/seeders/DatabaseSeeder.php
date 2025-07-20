@@ -13,9 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Run tenant and admin seeder first
+        // Run available seeders
         $this->call([
-            TenantAndAdminSeeder::class,
+            DemoTenantSeeder::class,
+            TenantThemeConfigSeeder::class,
             DashboardContentSeeder::class,
         ]);
 
