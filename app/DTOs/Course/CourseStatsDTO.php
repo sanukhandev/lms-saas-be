@@ -16,12 +16,12 @@ class CourseStatsDTO
     public function toArray(): array
     {
         return [
-            'total_courses' => $this->totalCourses,
-            'published_courses' => $this->publishedCourses,
-            'draft_courses' => $this->draftCourses,
-            'total_active_students' => $this->totalActiveStudents,
-            'average_completion_rate' => $this->averageCompletionRate,
-            'top_performing_courses' => $this->topPerformingCourses,
+            'totalCourses' => $this->totalCourses,
+            'publishedCourses' => $this->publishedCourses,
+            'draftCourses' => $this->draftCourses,
+            'totalActiveStudents' => $this->totalActiveStudents,
+            'averageCompletionRate' => $this->averageCompletionRate,
+            'topPerformingCourses' => $this->topPerformingCourses,
         ];
     }
 }
