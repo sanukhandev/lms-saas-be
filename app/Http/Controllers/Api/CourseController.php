@@ -9,6 +9,7 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\Course;
 
 class CourseController extends Controller
 {
@@ -82,10 +83,12 @@ class CourseController extends Controller
     public function show(string $courseId): JsonResponse
     {
         try {
+            $course = Course::findOrFail($courseId);
+            $this->authorize('view', $course);
             $tenantId = $this->getTenantId();
-            $course = $this->courseService->getCourseById($courseId, $tenantId);
+            $courseDto = $this->courseService->getCourseById($courseId, $tenantId);
 
-            if (!$course) {
+            if (!$courseDto) {
                 return $this->errorResponse(
                     message: 'Course not found',
                     code: 404
@@ -93,7 +96,7 @@ class CourseController extends Controller
             }
 
             return $this->successResponse(
-                $course->toArray(),
+                $courseDto->toArray(),
                 'Course retrieved successfully'
             );
         } catch (\Exception $e) {
@@ -117,12 +120,14 @@ class CourseController extends Controller
     public function update(UpdateCourseRequest $request, string $courseId): JsonResponse
     {
         try {
+            $course = Course::findOrFail($courseId);
+            $this->authorize('update', $course);
             $tenantId = $this->getTenantId();
             $data = $request->validated();
 
-            $course = $this->courseService->updateCourse($courseId, $data, $tenantId);
+            $courseDto = $this->courseService->updateCourse($courseId, $data, $tenantId);
 
-            if (!$course) {
+            if (!$courseDto) {
                 return $this->errorResponse(
                     message: 'Course not found',
                     code: 404
@@ -130,7 +135,7 @@ class CourseController extends Controller
             }
 
             return $this->successResponse(
-                $course->toArray(),
+                $courseDto->toArray(),
                 'Course updated successfully'
             );
         } catch (\Exception $e) {
@@ -154,6 +159,8 @@ class CourseController extends Controller
     public function destroy(string $courseId): JsonResponse
     {
         try {
+            $course = Course::findOrFail($courseId);
+            $this->authorize('delete', $course);
             $tenantId = $this->getTenantId();
 
             $success = $this->courseService->deleteCourse($courseId, $tenantId);

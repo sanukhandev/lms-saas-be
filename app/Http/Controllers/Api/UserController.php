@@ -9,6 +9,7 @@ use App\Services\User\UserService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
@@ -82,6 +83,8 @@ class UserController extends Controller
     public function show(int $userId): JsonResponse
     {
         try {
+            $user = $this->userService->getUserModelById($userId); // Add a method to fetch the User model
+            $this->authorize('view', $user);
             $result = $this->userService->getUserById($userId);
 
             if (!$result['success']) {
@@ -107,6 +110,8 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, int $userId): JsonResponse
     {
         try {
+            $user = $this->userService->getUserModelById($userId); // Add a method to fetch the User model
+            $this->authorize('update', $user);
             $result = $this->userService->updateUser($userId, $request->validated());
 
             if (!$result['success']) {
@@ -133,6 +138,8 @@ class UserController extends Controller
     public function destroy(int $userId): JsonResponse
     {
         try {
+            $user = $this->userService->getUserModelById($userId); // Add a method to fetch the User model
+            $this->authorize('delete', $user);
             $result = $this->userService->deleteUser($userId);
 
             if (!$result['success']) {
