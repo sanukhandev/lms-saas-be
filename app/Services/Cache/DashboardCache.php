@@ -24,7 +24,7 @@ class DashboardCache
     {
         $cacheKey = "dashboard_stats_{$tenantId}";
         
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             // Basic counts
             $totalUsers = User::where('tenant_id', $tenantId)->count();
             $totalCourses = Course::where('tenant_id', $tenantId)->count();
@@ -95,7 +95,7 @@ class DashboardCache
     {
         $cacheKey = "revenue_analytics_{$tenantId}";
         
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             // Daily revenue for last 30 days
             $dailyRevenue = CoursePurchase::whereHas('course', function ($query) use ($tenantId) {
                 $query->where('tenant_id', $tenantId);
@@ -145,7 +145,7 @@ class DashboardCache
     {
         $cacheKey = "user_engagement_{$tenantId}";
         
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             // User activity over time
             $userActivity = StudentProgress::whereHas('user', function ($query) use ($tenantId) {
                 $query->where('tenant_id', $tenantId);
@@ -188,7 +188,7 @@ class DashboardCache
     {
         $cacheKey = "course_performance_{$tenantId}";
         
-        return Cache::remember($cacheKey, $this->shortTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->shortTtl, function () use ($tenantId) {
             $courses = Course::where('tenant_id', $tenantId)
                 ->with(['users', 'feedback', 'coursePurchases'])
                 ->get();
@@ -310,10 +310,8 @@ class DashboardCache
      */
     public function clearDashboardCache(int $tenantId): void
     {
-        Cache::forget("dashboard_stats_{$tenantId}");
-        Cache::forget("revenue_analytics_{$tenantId}");
-        Cache::forget("user_engagement_{$tenantId}");
-        Cache::forget("course_performance_{$tenantId}");
+        // Use tags to flush all tenant dashboard-related cache
+        Cache::tags(["tenant_{$tenantId}"])->flush();
     }
 
     /**

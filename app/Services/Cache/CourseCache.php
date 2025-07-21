@@ -20,8 +20,7 @@ class CourseCache
     public function getCoursesForTenant(int $tenantId, int $perPage = 15, int $page = 1): LengthAwarePaginator
     {
         $cacheKey = "courses_tenant_{$tenantId}_page_{$page}_per_{$perPage}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $perPage, $page) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $perPage, $page) {
             return Course::where('tenant_id', $tenantId)
                 ->with(['category', 'users'])
                 ->orderBy('created_at', 'desc')
@@ -48,8 +47,7 @@ class CourseCache
     public function getCategoriesForTenant(int $tenantId): Collection
     {
         $cacheKey = "categories_tenant_{$tenantId}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             return Category::where('tenant_id', $tenantId)
                 ->with('children')
                 ->whereNull('parent_id')
@@ -149,15 +147,8 @@ class CourseCache
      */
     public function clearTenantCoursesCache(int $tenantId): void
     {
-        // Clear paginated courses cache
-        for ($page = 1; $page <= 10; $page++) { // Clear first 10 pages
-            Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_15");
-            Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_25");
-            Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_50");
-        }
-        
-        // Clear categories cache
-        Cache::forget("categories_tenant_{$tenantId}");
+        // Use tags to flush all tenant course-related cache
+        Cache::tags(["tenant_{$tenantId}"])->flush();
     }
 
     /**

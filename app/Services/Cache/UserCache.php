@@ -33,8 +33,7 @@ class UserCache
     public function getUsersForTenant(int $tenantId, int $perPage = 15, int $page = 1): LengthAwarePaginator
     {
         $cacheKey = "users_tenant_{$tenantId}_page_{$page}_per_{$perPage}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $perPage, $page) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $perPage, $page) {
             return User::where('tenant_id', $tenantId)
                 ->with(['courses'])
                 ->orderBy('created_at', 'desc')
@@ -178,8 +177,7 @@ class UserCache
     public function getInstructorsForTenant(int $tenantId): Collection
     {
         $cacheKey = "instructors_tenant_{$tenantId}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             return User::where('tenant_id', $tenantId)
                 ->whereHas('courses', function ($query) {
                     $query->wherePivot('role', 'instructor');
@@ -197,8 +195,7 @@ class UserCache
     public function getStudentsForTenant(int $tenantId): Collection
     {
         $cacheKey = "students_tenant_{$tenantId}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             return User::where('tenant_id', $tenantId)
                 ->whereHas('courses', function ($query) {
                     $query->wherePivot('role', 'student');
@@ -235,15 +232,8 @@ class UserCache
      */
     public function clearTenantUsersCache(int $tenantId): void
     {
-        // Clear paginated users cache
-        for ($page = 1; $page <= 10; $page++) { // Clear first 10 pages
-            Cache::forget("users_tenant_{$tenantId}_page_{$page}_per_15");
-            Cache::forget("users_tenant_{$tenantId}_page_{$page}_per_25");
-            Cache::forget("users_tenant_{$tenantId}_page_{$page}_per_50");
-        }
-        
-        Cache::forget("instructors_tenant_{$tenantId}");
-        Cache::forget("students_tenant_{$tenantId}");
+        // Use tags to flush all tenant user-related cache
+        Cache::tags(["tenant_{$tenantId}"])->flush();
     }
 
     /**
