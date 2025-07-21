@@ -47,7 +47,15 @@ class CourseCache
     public function getCategoriesForTenant(int $tenantId): Collection
     {
         $cacheKey = "categories_tenant_{$tenantId}";
-        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        $logPath = storage_path("logs/tenant_{$tenantId}.log");
+        $logger = new \Monolog\Logger("tenant_{$tenantId}");
+        $logger->pushHandler(new \Monolog\Handler\StreamHandler($logPath, \Monolog\Logger::INFO));
+        if (!\Cache::tags(["tenant_{$tenantId}"])->has($cacheKey)) {
+            $logger->info("Cache miss for categories: $cacheKey");
+        } else {
+            $logger->info("Cache hit for categories: $cacheKey");
+        }
+        return \Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             return Category::where('tenant_id', $tenantId)
                 ->with('children')
                 ->whereNull('parent_id')
@@ -147,8 +155,16 @@ class CourseCache
      */
     public function clearTenantCoursesCache(int $tenantId): void
     {
-        // Use tags to flush all tenant course-related cache
-        Cache::tags(["tenant_{$tenantId}"])->flush();
+        // Targeted cache invalidation for tenant courses
+        // Forget paginated course lists (first 20 pages, common perPage values)
+        foreach ([15, 25, 50] as $perPage) {
+            for ($page = 1; $page <= 20; $page++) {
+                \Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_{$perPage}");
+            }
+        }
+        // Forget categories cache
+        \Cache::forget("categories_tenant_{$tenantId}");
+        // Optionally, forget other known tenant-level keys here
     }
 
     /**

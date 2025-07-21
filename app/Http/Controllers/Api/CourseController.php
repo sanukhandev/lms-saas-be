@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\Course;
+use Illuminate\Http\Request;
 
 class CourseController extends Controller
 {
@@ -224,6 +225,38 @@ class CourseController extends Controller
                 code: 500
             );
         }
+    }
+
+    /**
+     * Get the schedule (release dates) for all modules/chapters in a course
+     */
+    public function getSchedule(string $courseId): JsonResponse
+    {
+        $course = Course::findOrFail($courseId);
+        $this->authorize('view', $course);
+        $schedule = $course->contents()->pluck('release_date', 'id');
+        return $this->successResponse(['schedule' => $schedule], 'Schedule retrieved successfully');
+    }
+
+    /**
+     * Update the schedule (release dates) for all modules/chapters in a course
+     */
+    public function updateSchedule(Request $request, string $courseId): JsonResponse
+    {
+        $course = Course::findOrFail($courseId);
+        $this->authorize('update', $course);
+        $data = $request->validate([
+            'schedule' => 'required|array',
+            'schedule.*' => 'nullable|date',
+        ]);
+        foreach ($data['schedule'] as $contentId => $date) {
+            $content = $course->contents()->where('id', $contentId)->first();
+            if ($content) {
+                $content->release_date = $date;
+                $content->save();
+            }
+        }
+        return $this->successResponse([], 'Schedule updated successfully');
     }
 
     /**
