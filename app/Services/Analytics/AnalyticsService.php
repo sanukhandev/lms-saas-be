@@ -14,9 +14,10 @@ class AnalyticsService
      */
     public function getAnalyticsOverview(string $tenantId, string $timeRange): array
     {
-        $cacheKey = "analytics_overview_{$tenantId}_{$timeRange}";
+        $cacheKey = "t{$tenantId}:analytics:overview:{$timeRange}";
+        $tags = ['analytics', "tenant:{$tenantId}"];
         
-        return Cache::remember($cacheKey, 300, function () use ($tenantId, $timeRange) {
+        return Cache::tags($tags)->remember($cacheKey, 3600, function () use ($tenantId, $timeRange) {
             $dateRange = $this->getDateRange($timeRange);
             
             return [
@@ -45,9 +46,10 @@ class AnalyticsService
      */
     public function getEngagementMetrics(string $tenantId, string $timeRange): array
     {
-        $cacheKey = "engagement_metrics_{$tenantId}_{$timeRange}";
+        $cacheKey = "t{$tenantId}:analytics:engagement:{$timeRange}";
+        $tags = ['analytics', "tenant:{$tenantId}"];
         
-        return Cache::remember($cacheKey, 300, function () use ($tenantId, $timeRange) {
+        return Cache::tags($tags)->remember($cacheKey, 3600, function () use ($tenantId, $timeRange) {
             $dateRange = $this->getDateRange($timeRange);
             
             return [
@@ -455,15 +457,16 @@ class AnalyticsService
         
         // Get daily engagement metrics for trends
         $trends = DB::table('student_progress')
-            ->where('tenant_id', $tenantId)
-            ->whereBetween(DB::raw('DATE(last_accessed)'), [$startDate, $endDate])
-            ->whereNotNull('last_accessed')
+            ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
+            ->whereBetween(DB::raw('DATE(student_progress.last_accessed)'), [$startDate, $endDate])
+            ->whereNotNull('student_progress.last_accessed')
             ->select(
-                DB::raw('DATE(last_accessed) as date'),
-                DB::raw('COUNT(DISTINCT user_id) as active_users'),
-                DB::raw('COUNT(id) as total_interactions'),
-                DB::raw('AVG(time_spent_mins) as avg_session_time'),
-                DB::raw('AVG(completion_percentage) as avg_progress')
+                DB::raw('DATE(student_progress.last_accessed) as date'),
+                DB::raw('COUNT(DISTINCT student_progress.user_id) as active_users'),
+                DB::raw('COUNT(student_progress.id) as total_interactions'),
+                DB::raw('AVG(student_progress.time_spent_mins) as avg_session_time'),
+                DB::raw('AVG(student_progress.completion_percentage) as avg_progress')
             )
             ->groupBy(DB::raw('DATE(last_accessed)'))
             ->orderBy('date')

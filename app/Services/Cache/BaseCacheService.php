@@ -6,10 +6,13 @@ use Illuminate\Support\Facades\Cache;
 
 abstract class BaseCacheService
 {
-    protected int $shortTtl = 300; // 5 minutes - for frequently changing data
+    protected int $shortTtl = 600; // 10 minutes - for frequently changing data
     protected int $defaultTtl = 3600; // 1 hour - for general data
-    protected int $longTtl = 7200; // 2 hours - for rarely changing data
+    protected int $longTtl = 14400; // 4 hours - for rarely changing data
     protected int $veryLongTtl = 86400; // 24 hours - for very static data
+    
+    // Standard tenant-related tags for better cache organization
+    protected array $baseTenantTags = ['tenant_data'];
 
     /**
      * Clear cache by pattern
@@ -61,7 +64,7 @@ abstract class BaseCacheService
      */
     protected function getTenantCacheKey(string $type, int $tenantId, string $suffix = ''): string
     {
-        return "{$type}_tenant_{$tenantId}" . ($suffix ? "_{$suffix}" : '');
+        return "t{$tenantId}:{$type}" . ($suffix ? ":{$suffix}" : '');
     }
 
     /**
@@ -69,7 +72,7 @@ abstract class BaseCacheService
      */
     protected function getUserCacheKey(string $type, int $userId, string $suffix = ''): string
     {
-        return "{$type}_user_{$userId}" . ($suffix ? "_{$suffix}" : '');
+        return "u{$userId}:{$type}" . ($suffix ? ":{$suffix}" : '');
     }
 
     /**
@@ -77,7 +80,7 @@ abstract class BaseCacheService
      */
     protected function getCourseCacheKey(string $type, int $courseId, string $suffix = ''): string
     {
-        return "{$type}_course_{$courseId}" . ($suffix ? "_{$suffix}" : '');
+        return "c{$courseId}:{$type}" . ($suffix ? ":{$suffix}" : '');
     }
 
     /**
@@ -86,6 +89,16 @@ abstract class BaseCacheService
     protected function warmCache(string $key, callable $callback, int $ttl = null): void
     {
         Cache::remember($key, $ttl ?? $this->defaultTtl, $callback);
+    }
+    
+    /**
+     * Batch warm cache with multiple keys
+     */
+    protected function batchWarmCache(array $items, int $ttl = null): void
+    {
+        foreach ($items as $key => $callback) {
+            Cache::remember($key, $ttl ?? $this->defaultTtl, $callback);
+        }
     }
 
     /**

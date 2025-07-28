@@ -26,7 +26,7 @@ class DashboardService
      */
     public function getDashboardStats(string $tenantId): DashboardStatsDTO
     {
-        return Cache::remember("dashboard_stats_{$tenantId}", 300, function () use ($tenantId) {
+        return Cache::tags(['dashboard', "tenant:{$tenantId}"])->remember("t{$tenantId}:dashboard:stats", 1800, function () use ($tenantId) {
             $totalUsers = User::where('tenant_id', $tenantId)->count();
             $totalCourses = Course::where('tenant_id', $tenantId)->count();
             $totalEnrollments = $this->getTotalEnrollments($tenantId);
@@ -103,9 +103,9 @@ class DashboardService
      */
     public function getCourseProgress(string $tenantId, int $page = 1, int $perPage = 10): LengthAwarePaginator
     {
-        $cacheKey = "course_progress_{$tenantId}_{$page}_{$perPage}";
+        $cacheKey = "t{$tenantId}:dashboard:courses:progress:{$page}:{$perPage}";
 
-        return Cache::remember($cacheKey, 600, function () use ($tenantId, $page, $perPage) {
+        return Cache::tags(['dashboard', "tenant:{$tenantId}", 'courses'])->remember($cacheKey, 1800, function () use ($tenantId, $page, $perPage) {
             // Get total count first
             $total = Course::where('tenant_id', $tenantId)->count();
 
@@ -196,9 +196,9 @@ class DashboardService
      */
     public function getUserProgress(string $tenantId, int $page = 1, int $perPage = 10): LengthAwarePaginator
     {
-        $cacheKey = "user_progress_{$tenantId}_{$page}_{$perPage}";
+        $cacheKey = "t{$tenantId}:dashboard:users:progress:{$page}:{$perPage}";
 
-        return Cache::remember($cacheKey, 600, function () use ($tenantId, $page, $perPage) {
+        return Cache::tags(['dashboard', "tenant:{$tenantId}", 'users'])->remember($cacheKey, 1800, function () use ($tenantId, $page, $perPage) {
             // Get total count first
             $total = User::where('tenant_id', $tenantId)
                 ->where('role', '!=', 'super_admin')
@@ -300,7 +300,7 @@ class DashboardService
      */
     public function getChartData(string $tenantId): ChartDataDTO
     {
-        return Cache::remember("chart_data_{$tenantId}", 900, function () use ($tenantId) {
+        return Cache::tags(['dashboard', "tenant:{$tenantId}", 'charts'])->remember("t{$tenantId}:dashboard:charts", 3600, function () use ($tenantId) {
             $enrollmentTrends = $this->getEnrollmentTrends($tenantId);
             $completionTrends = $this->getCompletionTrends($tenantId);
             $revenueTrends = $this->getRevenueTrends($tenantId);
@@ -349,7 +349,10 @@ class DashboardService
 
     private function calculateCourseCompletionRate(string $tenantId, int $totalEnrollments): float
     {
-        $completedCourses = StudentProgress::where('tenant_id', $tenantId)
+        // Ensure we count completions only for this tenant's courses
+        $completedCourses = DB::table('student_progress')
+            ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
             ->where('completion_percentage', 100)
             ->count();
 
@@ -365,7 +368,10 @@ class DashboardService
 
     private function getPendingEnrollments(string $tenantId): int
     {
-        return StudentProgress::where('tenant_id', $tenantId)
+        // Count pending enrollments for this tenant via join
+        return DB::table('student_progress')
+            ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
             ->where('completion_percentage', 0)
             ->count();
     }
@@ -411,7 +417,8 @@ class DashboardService
     private function getRecentCompletions(string $tenantId, int $limit = 10): Collection
     {
         return StudentProgress::with(['user:id,name,email', 'course:id,title'])
-            ->where('tenant_id', $tenantId)
+            ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
             ->where('completion_percentage', 100)
             ->whereNotNull('completed_at')
             ->where('completed_at', '>=', Carbon::now()->subDays(7))
@@ -568,11 +575,13 @@ class DashboardService
 
     private function getCompletionTrends(string $tenantId): array
     {
-        return StudentProgress::where('tenant_id', $tenantId)
-            ->where('completion_percentage', 100)
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '>=', Carbon::now()->subDays(30))
-            ->selectRaw('DATE(completed_at) as date, COUNT(*) as count')
+        return DB::table('student_progress')
+            ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
+            ->where('student_progress.completion_percentage', 100)
+            ->whereNotNull('student_progress.completed_at')
+            ->where('student_progress.completed_at', '>=', Carbon::now()->subDays(30))
+            ->selectRaw('DATE(student_progress.completed_at) as date, COUNT(*) as count')
             ->groupBy('date')
             ->orderBy('date')
             ->get()
@@ -651,10 +660,12 @@ class DashboardService
             ->whereBetween('course_user.created_at', [$startOfMonth, $endOfMonth])
             ->count();
 
-        $completions = StudentProgress::where('tenant_id', $tenantId)
-            ->where('completion_percentage', 100)
-            ->whereNotNull('completed_at')
-            ->whereBetween('completed_at', [$startOfMonth, $endOfMonth])
+        $completions = DB::table('student_progress')
+            ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+            ->where('courses.tenant_id', $tenantId)
+            ->where('student_progress.completion_percentage', 100)
+            ->whereNotNull('student_progress.completed_at')
+            ->whereBetween('student_progress.completed_at', [$startOfMonth, $endOfMonth])
             ->count();
 
         $revenue = CoursePurchase::where('tenant_id', $tenantId)
@@ -759,8 +770,11 @@ class DashboardService
             // For now, we'll set total revenue to 0 since we don't have a payments table
             $totalRevenue = 0; // TODO: Implement based on your payment model
 
-            $averageProgress = StudentProgress::where('tenant_id', $tenantId)
-                ->avg('completion_percentage') ?? 0;
+            // Calculate average progress with tenant-aware join
+            $averageProgress = DB::table('student_progress')
+                ->join('courses', 'student_progress.course_id', '=', 'courses.id')
+                ->where('courses.tenant_id', $tenantId)
+                ->avg('student_progress.completion_percentage') ?? 0;
 
             // Get top performers based on completed courses and progress - limit to 10 to avoid performance issues
             $topUsersIds = User::where('tenant_id', $tenantId)

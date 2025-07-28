@@ -98,17 +98,48 @@ Route::prefix('v1')->group(function () {
             Route::post('/{course}/enroll', [App\Http\Controllers\Api\CourseController::class, 'enrollStudents']);
             Route::get('/{course}/students', [App\Http\Controllers\Api\CourseController::class, 'getEnrolledStudents']);
 
-            // Course Content Routes
-            Route::get('/{course}/content', [App\Http\Controllers\Api\CourseContentController::class, 'index']);
-            Route::post('/{course}/content', [App\Http\Controllers\Api\CourseContentController::class, 'store']);
-            Route::get('/{course}/content/tree', [App\Http\Controllers\Api\CourseContentController::class, 'tree']);
-            Route::post('/{course}/content/reorder', [App\Http\Controllers\Api\CourseContentController::class, 'reorder']);
-            Route::get('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'show']);
-            Route::put('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'update']);
-            Route::delete('/{course}/content/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'destroy']);
+            // Course Content Management (Modules & Chapters)
+            Route::prefix('/{course}/content')->group(function () {
+                Route::get('/', [App\Http\Controllers\Api\CourseContentController::class, 'index']);
+                Route::post('/', [App\Http\Controllers\Api\CourseContentController::class, 'store']);
+                Route::get('/tree', [App\Http\Controllers\Api\CourseContentController::class, 'tree']);
+                Route::post('/reorder', [App\Http\Controllers\Api\CourseContentController::class, 'reorder']);
+                Route::get('/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'show']);
+                Route::put('/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'update']);
+                Route::delete('/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'destroy']);
+                
+                // Class Scheduling for specific content
+                Route::prefix('/{content}/classes')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Api\ClassScheduleController::class, 'getContentClasses']);
+                    Route::post('/', [App\Http\Controllers\Api\ClassScheduleController::class, 'scheduleClass']);
+                    Route::put('/{session}', [App\Http\Controllers\Api\ClassScheduleController::class, 'updateSchedule']);
+                    Route::delete('/{session}', [App\Http\Controllers\Api\ClassScheduleController::class, 'cancelClass']);
+                });
+            });
+
+            // Course-Level Class Scheduling & Planning
+            Route::prefix('/{course}/classes')->group(function () {
+                Route::get('/', [App\Http\Controllers\Api\ClassScheduleController::class, 'getCourseClasses']);
+                Route::post('/', [App\Http\Controllers\Api\ClassScheduleController::class, 'scheduleClass']);
+                Route::get('/planner', [App\Http\Controllers\Api\ClassScheduleController::class, 'getClassPlanner']);
+                Route::post('/planner', [App\Http\Controllers\Api\ClassScheduleController::class, 'createTeachingPlan']);
+                Route::put('/planner/{plan}', [App\Http\Controllers\Api\ClassScheduleController::class, 'updateTeachingPlan']);
+                Route::delete('/planner/{plan}', [App\Http\Controllers\Api\ClassScheduleController::class, 'deleteTeachingPlan']);
+                Route::post('/bulk-schedule', [App\Http\Controllers\Api\ClassScheduleController::class, 'bulkScheduleClasses']);
+            });
+
+            // Session Management
+            Route::prefix('/{course}/sessions')->group(function () {
+                Route::get('/', [App\Http\Controllers\Api\SessionController::class, 'index']);
+                Route::get('/{session}', [App\Http\Controllers\Api\SessionController::class, 'show']);
+                Route::put('/{session}', [App\Http\Controllers\Api\SessionController::class, 'update']);
+                Route::post('/{session}/start', [App\Http\Controllers\Api\SessionController::class, 'startSession']);
+                Route::post('/{session}/end', [App\Http\Controllers\Api\SessionController::class, 'endSession']);
+                Route::post('/{session}/attendance', [App\Http\Controllers\Api\SessionController::class, 'markAttendance']);
+            });
         });
 
-        // Course Builder Routes
+        // Course Builder Routes (Legacy - keeping for compatibility)
         Route::prefix('course-builder')->group(function () {
             Route::get('/{courseId}/structure', [App\Http\Controllers\Api\CourseBuilderController::class, 'getCourseStructure']);
             Route::post('/{courseId}/modules', [App\Http\Controllers\Api\CourseBuilderController::class, 'createModule']);

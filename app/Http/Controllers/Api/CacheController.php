@@ -40,6 +40,20 @@ class CacheController extends Controller
 
         $tenantId = $request->input('tenant_id');
         
+        // Use more efficient tag-based cache clearing
+        $tags = [
+            "tenant:{$tenantId}",
+            'dashboard',
+            'analytics',
+            'courses',
+            'users',
+            'sessions'
+        ];
+        
+        foreach ($tags as $tag) {
+            \Cache::tags($tag)->flush();
+        }
+        
         $this->cacheManager->clearTenantCache($tenantId);
         
         return response()->json([

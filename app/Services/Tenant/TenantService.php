@@ -61,35 +61,36 @@ class TenantService
     /**
      * Update tenant settings
      */
-    public function updateSettings(Tenant $tenant, UpdateTenantSettingsDTO $dto): Tenant
+    public function updateTenantSettings(string $domain, array $settings): bool
     {
-        try {
-            // Merge existing settings with new settings
-            $currentSettings = $tenant->settings ?? [];
-            $mergedSettings = array_merge($currentSettings, $dto->settings);
-
-            $tenant->update(['settings' => $mergedSettings]);
-
-            // Clear cache for this tenant using cache manager
-            $this->cacheManager->clearTenantCache($tenant->id);
-
-            // Also clear specific tenant cache keys
-            Cache::forget("tenant_domain_{$tenant->domain}");
-            Cache::forget("tenant_settings_{$tenant->domain}");
-
-            Log::info('Tenant settings updated successfully', [
-                'tenant_id' => $tenant->id,
-                'tenant_domain' => $tenant->domain,
-                'updated_settings' => array_keys($dto->settings),
-            ]);
-
-            return $tenant->fresh();
-        } catch (\Exception $e) {
-            Log::error('Failed to update tenant settings', [
-                'tenant_id' => $tenant->id,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
+        $tenant = $this->findByDomain($domain);
+        
+        if (!$tenant) {
+            return false;
+        }
+        
+        $tenant->settings = $settings;
+        $success = $tenant->save();
+        
+        // Clear cached settings
+        if ($success) {
+            $this->clearTenantCache($domain);
+        }
+        
+        return $success;
+    }
+    
+    /**
+     * Clear tenant-related cache
+     */
+    public function clearTenantCache(string $domain): void
+    {
+        Cache::tags(['tenants', "domain:{$domain}"])->flush();
+        
+        // If we know the tenant ID, also clear tenant-specific cache
+        $tenant = $this->findByDomain($domain);
+        if ($tenant) {
+            Cache::tags(["tenant:{$tenant->id}"])->flush();
         }
     }
 
@@ -117,7 +118,7 @@ class TenantService
      */
     public function getTenantWithDefaultSettings(string $domain): array
     {
-        return Cache::remember("tenant_settings_{$domain}", 3600, function () use ($domain) {
+        return Cache::tags(['tenants', "domain:{$domain}"])->remember("tenant:settings:{$domain}", 86400, function () use ($domain) {
             $tenant = $this->findByDomain($domain);
 
             if (!$tenant) {
