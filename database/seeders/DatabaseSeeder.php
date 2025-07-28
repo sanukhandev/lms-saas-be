@@ -18,14 +18,9 @@ class DatabaseSeeder extends Seeder
             DemoTenantSeeder::class,
             TenantThemeConfigSeeder::class,
             DashboardContentSeeder::class,
+            CourseTreeStructureSeeder::class,
         ]);
 
         // Create additional test user if needed
-        if (!User::where('email', 'test@example.com')->exists()) {
-            User::factory()->create([
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-            ]);
-        }
-    }
+     
 }
