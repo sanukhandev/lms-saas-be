@@ -7,6 +7,25 @@ A comprehensive Learning Management System (LMS) backend built with Laravel, fea
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange?style=flat-square&logo=mysql)
 ![Redis](https://img.shields.io/badge/Redis-Cache-red?style=flat-square&logo=redis)
 
+## 🔄 Database Rebuild
+
+> **Note:** The database schema has been completely rebuilt for better performance and consistency. See below for details.
+
+### Using the Database Rebuild Scripts
+
+```bash
+# Reset and rebuild the database with new migrations and seeders
+bash rebuild_database.sh
+
+# Verify the database structure is working correctly
+bash verify_database.sh
+```
+
+### Rebuild Documentation
+
+- **[DATABASE_REBUILD_DOCUMENTATION.md](DATABASE_REBUILD_DOCUMENTATION.md)** - Detailed documentation of the database structure
+- **[DATABASE_REBUILD_SUMMARY.md](DATABASE_REBUILD_SUMMARY.md)** - Summary of changes and improvements
+
 ## 🚀 Features
 
 ### 🏢 Multi-Tenant Architecture
@@ -153,8 +172,12 @@ SANCTUM_STATEFUL_DOMAINS=localhost:3000,127.0.0.1:3000
 
 5. **Database setup**
 ```bash
+# Option 1: Standard setup
 php artisan migrate
 php artisan db:seed
+
+# Option 2: Use rebuilt database structure (recommended)
+bash rebuild_database.sh
 ```
 
 6. **Storage linking**
@@ -212,6 +235,16 @@ POST /v1/courses             # Create course
 GET /v1/courses/{id}         # Get course details
 PUT /v1/courses/{id}         # Update course
 DELETE /v1/courses/{id}      # Delete course
+```
+
+#### Course Builder API
+```bash
+GET /v1/course-builder/{id}/structure       # Get course structure
+POST /v1/course-builder/{id}/module         # Create new module
+POST /v1/course-builder/{id}/chapter        # Create new chapter
+PUT /v1/course-builder/module/{id}          # Update module
+PUT /v1/course-builder/chapter/{id}         # Update chapter
+DELETE /v1/course-builder/{id}              # Delete module/chapter
 ```
 
 #### Category Management
@@ -351,6 +384,10 @@ php artisan migrate           # Run migrations
 php artisan migrate:fresh     # Fresh migration
 php artisan db:seed          # Run seeders
 
+# Database Rebuild (New)
+bash rebuild_database.sh     # Rebuild database with new structure
+bash verify_database.sh      # Verify database structure is working
+
 # Cache Management
 php artisan cache:clear      # Clear application cache
 php artisan config:clear     # Clear config cache
@@ -368,6 +405,10 @@ php artisan pint            # Code formatting
 - **[Dashboard API Documentation](DASHBOARD_API_DOCUMENTATION.md)** - Complete API reference
 - **[Multi-Tenant Setup](MULTITENANT_SETUP.md)** - Multi-tenancy implementation guide
 - **[Analytics Implementation](ANALYTICS_IMPLEMENTATION_SUMMARY.md)** - Analytics system overview
+
+### Database & Schema
+- **[Database Rebuild Documentation](DATABASE_REBUILD_DOCUMENTATION.md)** - Detailed documentation of the database structure
+- **[Database Rebuild Summary](DATABASE_REBUILD_SUMMARY.md)** - Summary of changes and improvements
 
 ### Features & Updates
 - **[Dashboard Updates](DASHBOARD_UPDATES.md)** - Recent dashboard improvements
