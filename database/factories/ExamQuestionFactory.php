@@ -49,6 +49,9 @@ class ExamQuestionFactory extends Factory
             'correct_answer' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
             'marks' => $this->faker->numberBetween(1, 5),
             'exam_id' => Exam::factory(),
+            'tenant_id' => function (array $attributes) {
+                return Exam::find($attributes['exam_id'])->tenant_id ?? 1;
+            },
         ];
     }
 

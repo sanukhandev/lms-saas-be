@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->foreignId('exam_id')->constrained('exams')->onDelete('cascade');
-            $table->text('question_text');
+            $table->text('question'); // Changed from question_text to match the model
             $table->enum('question_type', ['multiple_choice', 'true_false', 'short_answer', 'essay', 'matching'])->default('multiple_choice');
             $table->json('options')->nullable(); // For multiple choice, matching
-            $table->json('correct_answer')->nullable(); // The correct answer(s)
-            $table->integer('points')->default(1);
+            $table->string('correct_answer')->nullable(); // The correct answer(s)
+            $table->integer('marks')->default(1); // Changed from points to marks to match the model
             $table->text('feedback')->nullable(); // Feedback to show after answering
             $table->text('hint')->nullable();
             $table->integer('position')->default(0); // For ordering questions

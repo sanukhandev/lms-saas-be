@@ -28,6 +28,9 @@ class ExamResultFactory extends Factory
             'answers' => $this->generateAnswers(),
             'exam_id' => Exam::factory(),
             'student_id' => User::factory()->state(['role' => 'student']),
+            'tenant_id' => function (array $attributes) {
+                return Exam::find($attributes['exam_id'])->tenant_id ?? 1;
+            },
         ];
     }
 

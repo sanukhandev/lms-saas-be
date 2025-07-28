@@ -11,21 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('exam_results', function (Blueprint $table) {
+        Schema::create('certificates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
-            $table->foreignId('exam_id')->constrained('exams')->onDelete('cascade');
+            $table->foreignId('course_id')->constrained('courses')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
-            $table->integer('score');
-            $table->boolean('is_passed')->default(false);
-            $table->json('answers')->nullable();
+            $table->foreignId('exam_result_id')->nullable()->constrained('exam_results')->onDelete('set null');
+            $table->string('certificate_no')->unique();
+            $table->string('template_slug');
+            $table->string('pdf_path')->nullable();
+            $table->boolean('is_verified')->default(false);
             $table->json('meta_data')->nullable();
             $table->timestamps();
             
             // Add optimized indexes
-            $table->index(['tenant_id', 'exam_id', 'student_id']);
-            $table->index(['student_id', 'exam_id']);
-            $table->index(['exam_id', 'is_passed']);
+            $table->index(['tenant_id', 'course_id']);
+            $table->index(['student_id', 'course_id']);
+            $table->index(['certificate_no', 'is_verified']);
         });
     }
 
@@ -34,6 +36,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('exam_results');
+        Schema::dropIfExists('certificates');
     }
 };

@@ -147,6 +147,7 @@ class DashboardContentSeeder extends Seeder
         foreach ($exams as $exam) {
             ExamQuestion::factory()->count(rand(3, 8))->create([
                 'exam_id' => $exam['id'],
+                'tenant_id' => $tenant->id,
             ]);
         }
 

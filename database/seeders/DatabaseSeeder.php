@@ -37,3 +37,4 @@ class DatabaseSeeder extends Seeder
         
         $this->command->info('Database seeding completed successfully!');
     }
+}
