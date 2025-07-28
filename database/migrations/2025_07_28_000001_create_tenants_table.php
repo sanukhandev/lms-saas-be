@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('tenants', function (Blueprint $table) {
@@ -16,13 +19,16 @@ return new class extends Migration
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
             $table->json('settings')->nullable();
             $table->timestamps();
-
-            // Indexes
+            
+            // Add optimized indexes
             $table->index(['status', 'domain']);
             $table->index('slug');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('tenants');

@@ -22,5 +22,5 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Create additional test user if needed
-     
+    }
 }
