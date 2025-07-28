@@ -15,15 +15,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->foreignId('course_id')->constrained('courses')->onDelete('cascade');
-            $table->foreignId('content_id')->nullable()->constrained('courses')->onDelete('cascade');
+            $table->foreignId('content_id')->nullable()->constrained('course_contents')->onDelete('cascade');
             $table->string('title');
             $table->text('description')->nullable();
+            $table->text('instructions')->nullable();
             $table->integer('time_limit_minutes')->nullable();
             $table->integer('passing_score')->default(70); // Percentage required to pass
             $table->integer('max_attempts')->default(1);
             $table->boolean('is_randomized')->default(false);
             $table->boolean('show_answers')->default(false);
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_published')->default(false);
             $table->timestamp('available_from')->nullable();
             $table->timestamp('available_until')->nullable();
             $table->enum('type', ['quiz', 'midterm', 'final', 'practice'])->default('quiz');
