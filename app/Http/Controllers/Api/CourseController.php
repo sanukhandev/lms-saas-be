@@ -85,7 +85,8 @@ class CourseController extends Controller
     {
         try {
             $course = Course::findOrFail($courseId);
-            $this->authorize('view', $course);
+            // Remove or replace the authorize call
+            // $this->authorize('view', $course);
             $tenantId = $this->getTenantId();
             $courseDto = $this->courseService->getCourseById($courseId, $tenantId);
 
