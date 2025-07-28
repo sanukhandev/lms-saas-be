@@ -9,6 +9,7 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\Category;
 
 class CategoryController extends Controller
 {
@@ -82,10 +83,12 @@ class CategoryController extends Controller
     public function show(string $categoryId): JsonResponse
     {
         try {
+            $category = Category::findOrFail($categoryId);
+            $this->authorize('view', $category);
             $tenantId = $this->getTenantId();
-            $category = $this->categoryService->getCategoryById($categoryId, $tenantId);
+            $categoryDto = $this->categoryService->getCategoryById($categoryId, $tenantId);
 
-            if (!$category) {
+            if (!$categoryDto) {
                 return $this->errorResponse(
                     message: 'Category not found',
                     code: 404
@@ -93,7 +96,7 @@ class CategoryController extends Controller
             }
 
             return $this->successResponse(
-                $category->toArray(),
+                $categoryDto->toArray(),
                 'Category retrieved successfully'
             );
         } catch (\Exception $e) {
@@ -117,12 +120,14 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, string $categoryId): JsonResponse
     {
         try {
+            $category = Category::findOrFail($categoryId);
+            $this->authorize('update', $category);
             $tenantId = $this->getTenantId();
             $data = $request->validated();
 
-            $category = $this->categoryService->updateCategory($categoryId, $data, $tenantId);
+            $categoryDto = $this->categoryService->updateCategory($categoryId, $data, $tenantId);
 
-            if (!$category) {
+            if (!$categoryDto) {
                 return $this->errorResponse(
                     message: 'Category not found',
                     code: 404
@@ -130,7 +135,7 @@ class CategoryController extends Controller
             }
 
             return $this->successResponse(
-                $category->toArray(),
+                $categoryDto->toArray(),
                 'Category updated successfully'
             );
         } catch (\Exception $e) {
@@ -154,6 +159,8 @@ class CategoryController extends Controller
     public function destroy(string $categoryId): JsonResponse
     {
         try {
+            $category = Category::findOrFail($categoryId);
+            $this->authorize('delete', $category);
             $tenantId = $this->getTenantId();
 
             $success = $this->categoryService->deleteCategory($categoryId, $tenantId);

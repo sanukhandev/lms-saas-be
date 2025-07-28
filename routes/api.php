@@ -97,6 +97,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{course}', [App\Http\Controllers\Api\CourseController::class, 'destroy']);
             Route::post('/{course}/enroll', [App\Http\Controllers\Api\CourseController::class, 'enrollStudents']);
             Route::get('/{course}/students', [App\Http\Controllers\Api\CourseController::class, 'getEnrolledStudents']);
+            Route::get('/{course}/schedule', [App\Http\Controllers\Api\CourseController::class, 'getSchedule']);
+            Route::put('/{course}/schedule', [App\Http\Controllers\Api\CourseController::class, 'updateSchedule']);
 
             // Course Content Management (Modules & Chapters)
             Route::prefix('/{course}/content')->group(function () {

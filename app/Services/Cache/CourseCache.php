@@ -20,8 +20,7 @@ class CourseCache
     public function getCoursesForTenant(int $tenantId, int $perPage = 15, int $page = 1): LengthAwarePaginator
     {
         $cacheKey = "courses_tenant_{$tenantId}_page_{$page}_per_{$perPage}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $perPage, $page) {
+        return Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId, $perPage, $page) {
             return Course::where('tenant_id', $tenantId)
                 ->with(['category', 'users'])
                 ->orderBy('created_at', 'desc')
@@ -48,8 +47,15 @@ class CourseCache
     public function getCategoriesForTenant(int $tenantId): Collection
     {
         $cacheKey = "categories_tenant_{$tenantId}";
-        
-        return Cache::remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
+        $logPath = storage_path("logs/tenant_{$tenantId}.log");
+        $logger = new \Monolog\Logger("tenant_{$tenantId}");
+        $logger->pushHandler(new \Monolog\Handler\StreamHandler($logPath, \Monolog\Logger::INFO));
+        if (!\Cache::tags(["tenant_{$tenantId}"])->has($cacheKey)) {
+            $logger->info("Cache miss for categories: $cacheKey");
+        } else {
+            $logger->info("Cache hit for categories: $cacheKey");
+        }
+        return \Cache::tags(["tenant_{$tenantId}"])->remember($cacheKey, $this->defaultTtl, function () use ($tenantId) {
             return Category::where('tenant_id', $tenantId)
                 ->with('children')
                 ->whereNull('parent_id')
@@ -149,15 +155,16 @@ class CourseCache
      */
     public function clearTenantCoursesCache(int $tenantId): void
     {
-        // Clear paginated courses cache
-        for ($page = 1; $page <= 10; $page++) { // Clear first 10 pages
-            Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_15");
-            Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_25");
-            Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_50");
+        // Targeted cache invalidation for tenant courses
+        // Forget paginated course lists (first 20 pages, common perPage values)
+        foreach ([15, 25, 50] as $perPage) {
+            for ($page = 1; $page <= 20; $page++) {
+                \Cache::forget("courses_tenant_{$tenantId}_page_{$page}_per_{$perPage}");
+            }
         }
-        
-        // Clear categories cache
-        Cache::forget("categories_tenant_{$tenantId}");
+        // Forget categories cache
+        \Cache::forget("categories_tenant_{$tenantId}");
+        // Optionally, forget other known tenant-level keys here
     }
 
     /**
