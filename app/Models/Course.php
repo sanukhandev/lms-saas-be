@@ -24,6 +24,7 @@ class Course extends Model
         'access_model',
         'price',
         'discount_percentage',
+        'discounted_price',
         'subscription_price',
         'trial_period_days',
         'is_pricing_active',
@@ -38,7 +39,30 @@ class Course extends Model
         'what_you_will_learn',
         'meta_description',
         'tags',
-        'average_rating'
+        'average_rating',
+        'pricing_model',
+        'published_at',
+        'unpublished_at',
+        // New tree structure fields
+        'parent_id',
+        'content_type',
+        'position',
+        'content',
+        'learning_objectives',
+        'video_url',
+        'duration_minutes'
+    ];
+    
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'learning_objectives' => 'json',
+        'position' => 'integer',
+        'duration_minutes' => 'float',
+        'duration_hours' => 'float',
     ];
 
     public function tenant():BelongsTo
@@ -95,5 +119,51 @@ class Course extends Model
     public function students(): BelongsToMany
     {
         return $this->users()->wherePivot('role', 'student');
+    }
+
+    /**
+     * Get the parent course
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Course::class, 'parent_id');
+    }
+    
+    /**
+     * Get children (modules, chapters, lessons)
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Course::class, 'parent_id')->orderBy('position');
+    }
+    
+    /**
+     * Get only modules (first level children)
+     */
+    public function modules(): HasMany
+    {
+        return $this->hasMany(Course::class, 'parent_id')
+                    ->where('content_type', 'module')
+                    ->orderBy('position');
+    }
+    
+    /**
+     * Get only chapters (can be direct children or through modules)
+     */
+    public function chapters(): HasMany
+    {
+        return $this->hasMany(Course::class, 'parent_id')
+                    ->where('content_type', 'chapter')
+                    ->orderBy('position');
+    }
+    
+    /**
+     * Recursive method to get entire course tree
+     */
+    public function getTree()
+    {
+        return $this->children()->with(['children' => function($query) {
+            $query->orderBy('position');
+        }])->orderBy('position')->get();
     }
 }

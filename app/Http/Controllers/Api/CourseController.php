@@ -84,9 +84,8 @@ class CourseController extends Controller
     public function show(string $courseId): JsonResponse
     {
         try {
-            $course = Course::findOrFail($courseId);
-            // Remove or replace the authorize call
-            // $this->authorize('view', $course);
+            // Don't find the course first - let the service handle that
+            // as it checks both course ID and tenant ID together
             $tenantId = $this->getTenantId();
             $courseDto = $this->courseService->getCourseById($courseId, $tenantId);
 

@@ -47,8 +47,8 @@ class CourseService
     {
         $cacheKey = "course_{$courseId}_{$tenantId}";
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($courseId, $tenantId) {
-            $course = Course::with(['category', 'instructor', 'contents'])
+        return Cache::tags(["tenant:{$tenantId}", "course:{$courseId}"])->remember($cacheKey, self::CACHE_TTL, function () use ($courseId, $tenantId) {
+            $course = Course::with(['category', 'instructors', 'contents'])
                 ->where('id', $courseId)
                 ->where('tenant_id', $tenantId)
                 ->first();
