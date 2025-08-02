@@ -19,7 +19,6 @@ class CourseContent extends Model
         'description',
         'position',
         'duration_mins',
-        'release_date', // added for scheduling
         'tenant_id'
     ];
 
