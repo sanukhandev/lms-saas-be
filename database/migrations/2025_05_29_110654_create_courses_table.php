@@ -16,18 +16,18 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->foreignId('instructor_id')->nullable()->constrained('users')->onDelete('set null');
-            
+
             // Basic course information
             $table->string('title');
             $table->text('description')->nullable();
             $table->text('short_description')->nullable();
             $table->string('slug')->nullable();
-            
+
             // Course structure and scheduling
             $table->enum('schedule_level', ['course', 'module', 'chapter'])->default('chapter');
             $table->enum('status', ['draft', 'published', 'archived'])->default('draft');
             $table->boolean('is_active')->default(true);
-            
+
             // Pricing
             $table->enum('access_model', ['free', 'paid', 'subscription'])->default('free');
             $table->decimal('price', 10, 2)->nullable();
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->boolean('is_pricing_active')->default(false);
             $table->string('currency', 3)->default('USD');
             $table->enum('pricing_model', ['one_time', 'subscription', 'free'])->default('free');
-            
+
             // Course details
             $table->enum('level', ['beginner', 'intermediate', 'advanced'])->default('beginner');
             $table->integer('duration_hours')->nullable();
@@ -49,7 +49,7 @@ return new class extends Migration
             $table->text('meta_description')->nullable();
             $table->json('tags')->nullable();
             $table->decimal('average_rating', 3, 2)->default(0);
-            
+
             // Tree structure fields
             $table->foreignId('parent_id')->nullable()->constrained('courses')->onDelete('cascade');
             $table->enum('content_type', ['course', 'module', 'chapter', 'lesson'])->default('course');
@@ -58,13 +58,13 @@ return new class extends Migration
             $table->string('video_url')->nullable();
             $table->integer('duration_minutes')->nullable();
             $table->json('learning_objectives')->nullable();
-            
+
             // Publishing timestamps
             $table->timestamp('published_at')->nullable();
             $table->timestamp('unpublished_at')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Indexes
             $table->index(['tenant_id', 'category_id']);
             $table->index(['tenant_id', 'status']);

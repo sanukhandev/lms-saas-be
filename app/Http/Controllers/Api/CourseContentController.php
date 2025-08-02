@@ -139,7 +139,7 @@ class CourseContentController extends Controller
         ]);
 
         $contentIds = $request->content_ids;
-        
+
         foreach ($contentIds as $index => $contentId) {
             CourseContent::where('id', $contentId)
                 ->where('course_id', $course->id)

@@ -22,22 +22,22 @@ class CourseContent extends Model
         'tenant_id'
     ];
 
-    public function course():BelongsTo
+    public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function parent():BelongsTo
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(CourseContent::class, 'parent_id');
     }
 
-    public function children():HasMany
+    public function children(): HasMany
     {
         return $this->hasMany(CourseContent::class, 'parent_id');
     }
 
-    public function sessions():HasMany
+    public function sessions(): HasMany
     {
         return $this->hasMany(ClassSession::class, 'content_id');
     }

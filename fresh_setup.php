@@ -17,18 +17,19 @@ use Illuminate\Support\Facades\Artisan;
 
 echo "=== LMS Backend Fresh Setup ===\n\n";
 
-function runCommand($command, $description) {
+function runCommand($command, $description)
+{
     echo "Running: $description\n";
     echo "Command: $command\n";
-    
+
     $output = [];
     $return_var = 0;
     exec($command, $output, $return_var);
-    
+
     foreach ($output as $line) {
         echo "  $line\n";
     }
-    
+
     if ($return_var === 0) {
         echo "✓ Success\n\n";
         return true;
@@ -38,15 +39,16 @@ function runCommand($command, $description) {
     }
 }
 
-function checkModelFactories() {
+function checkModelFactories()
+{
     echo "Checking Model Factories:\n";
     $factoryDir = 'database/factories';
-    
+
     if (!is_dir($factoryDir)) {
         echo "  ✗ Factory directory not found\n\n";
         return false;
     }
-    
+
     $factories = glob("$factoryDir/*.php");
     $requiredFactories = [
         'UserFactory.php',
@@ -54,12 +56,12 @@ function checkModelFactories() {
         'CategoryFactory.php',
         'CourseFactory.php'
     ];
-    
+
     $found = [];
     foreach ($factories as $factory) {
         $found[] = basename($factory);
     }
-    
+
     foreach ($requiredFactories as $required) {
         if (in_array($required, $found)) {
             echo "  ✓ $required found\n";
@@ -67,22 +69,23 @@ function checkModelFactories() {
             echo "  ✗ $required missing\n";
         }
     }
-    
+
     echo "\n";
     return true;
 }
 
-function checkSeederDependencies() {
+function checkSeederDependencies()
+{
     echo "Checking Seeder Dependencies:\n";
-    
+
     $models = [
         'User' => 'App\\Models\\User',
-        'Tenant' => 'App\\Models\\Tenant', 
+        'Tenant' => 'App\\Models\\Tenant',
         'Category' => 'App\\Models\\Category',
         'Course' => 'App\\Models\\Course',
         'CourseContent' => 'App\\Models\\CourseContent',
     ];
-    
+
     foreach ($models as $name => $class) {
         if (class_exists($class)) {
             echo "  ✓ Model $name exists\n";
@@ -90,16 +93,17 @@ function checkSeederDependencies() {
             echo "  ✗ Model $name missing\n";
         }
     }
-    
+
     echo "\n";
     return true;
 }
 
-function showDuplicateMigrations() {
+function showDuplicateMigrations()
+{
     echo "Duplicate Migration Files:\n";
     $migrationFiles = glob('database/migrations/*.php');
     $duplicates = [];
-    
+
     $patterns = [
         'create_users_table',
         'create_categories_table',
@@ -107,7 +111,7 @@ function showDuplicateMigrations() {
         'create_tenants_table',
         'create_sessions_table'
     ];
-    
+
     foreach ($patterns as $pattern) {
         $matches = [];
         foreach ($migrationFiles as $file) {
@@ -115,7 +119,7 @@ function showDuplicateMigrations() {
                 $matches[] = basename($file);
             }
         }
-        
+
         if (count($matches) > 1) {
             echo "  Pattern '$pattern':\n";
             foreach ($matches as $match) {
@@ -124,11 +128,11 @@ function showDuplicateMigrations() {
             $duplicates = array_merge($duplicates, $matches);
         }
     }
-    
+
     if (empty($duplicates)) {
         echo "  ✓ No obvious duplicates found\n";
     }
-    
+
     echo "\n";
     return $duplicates;
 }
@@ -139,7 +143,7 @@ try {
     $tables = collect(DB::select('SHOW TABLES'));
     echo "  Database connected: ✓\n";
     echo "  Tables found: " . $tables->count() . "\n";
-    
+
     if ($tables->count() > 0) {
         $migrations = DB::table('migrations')->count();
         echo "  Migrations in DB: $migrations\n";
@@ -179,7 +183,7 @@ switch ($choice) {
         $handle = fopen("php://stdin", "r");
         $confirm = trim(fgets($handle));
         fclose($handle);
-        
+
         if (strtolower($confirm) === 'y') {
             runCommand('php artisan migrate:fresh', 'Fresh migration');
             echo "✓ Fresh migration completed!\n";
@@ -188,14 +192,14 @@ switch ($choice) {
             echo "  - Or run 'php artisan serve' to start the server\n";
         }
         break;
-        
+
     case '2':
         echo "\nThis will DROP ALL TABLES, re-run migrations, and seed data.\n";
         echo "Continue? (y/N): ";
         $handle = fopen("php://stdin", "r");
         $confirm = trim(fgets($handle));
         fclose($handle);
-        
+
         if (strtolower($confirm) === 'y') {
             runCommand('php artisan migrate:fresh --seed', 'Fresh migration with seeding');
             echo "✓ Fresh migration with seeding completed!\n";
@@ -204,14 +208,14 @@ switch ($choice) {
             echo "  - Test login with admin@demo.com\n";
         }
         break;
-        
+
     case '3':
         echo "\nThis will clear the migrations table only.\n";
         echo "Continue? (y/N): ";
         $handle = fopen("php://stdin", "r");
         $confirm = trim(fgets($handle));
         fclose($handle);
-        
+
         if (strtolower($confirm) === 'y') {
             DB::table('migrations')->truncate();
             echo "✓ Migrations table cleared!\n";
@@ -219,7 +223,7 @@ switch ($choice) {
             echo "  - Run 'php artisan migrate' to apply migrations\n";
         }
         break;
-        
+
     case '4':
         echo "\nDuplicate migration files found:\n";
         if (!empty($duplicates)) {
@@ -229,15 +233,15 @@ switch ($choice) {
             echo "\nTo clean up, you can delete the older duplicate files.\n";
         }
         break;
-        
+
     case '5':
         echo "Diagnostic completed. No changes made.\n";
         break;
-        
+
     case '6':
         echo "Exiting...\n";
         break;
-        
+
     default:
         echo "Invalid choice.\n";
         break;

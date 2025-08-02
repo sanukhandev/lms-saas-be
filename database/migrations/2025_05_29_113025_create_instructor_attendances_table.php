@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->unique(['class_session_id', 'instructor_id']); // 1 record per tutor per session
             $table->index(['tenant_id', 'class_session_id']);
-            $table->index(['class_session_id', 'instructor_id', 'status'],'instructor_attendance_idx');
+            $table->index(['class_session_id', 'instructor_id', 'status'], 'instructor_attendance_idx');
         });
     }
 

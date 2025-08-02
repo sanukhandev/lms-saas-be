@@ -20,7 +20,7 @@ return new class extends Migration
                     ->comment('Status of the courses: created, published, archived, or draft');
             });
         }
-        
+
         // Add index if it doesn't exist
         if (!Schema::hasIndex('courses', ['status'])) {
             Schema::table('courses', function (Blueprint $table) {

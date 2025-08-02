@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Schema;
 
 echo "=== Fresh Migration Setup ===\n\n";
 
-function confirmAction($message) {
+function confirmAction($message)
+{
     echo $message . " (y/N): ";
     $handle = fopen("php://stdin", "r");
     $line = fgets($handle);
@@ -68,7 +69,7 @@ switch ($choice) {
             }
         }
         break;
-        
+
     case '2':
         if (confirmAction("This will DROP ALL TABLES, re-run migrations, and run seeders. Continue?")) {
             echo "\nRunning migrate:fresh --seed...\n";
@@ -83,19 +84,19 @@ switch ($choice) {
             }
         }
         break;
-        
+
     case '3':
         echo "\nDuplicate migration files found:\n";
         $migrationFiles = glob('database/migrations/*.php');
         $duplicates = [];
-        
+
         foreach ($migrationFiles as $file) {
             $filename = basename($file);
             if (preg_match('/2025_07_20_.*/', $filename)) {
                 $duplicates[] = $filename;
             }
         }
-        
+
         if (empty($duplicates)) {
             echo "   No obvious duplicate files found.\n";
         } else {
@@ -105,11 +106,11 @@ switch ($choice) {
             echo "\nYou can manually delete these files if they're duplicates.\n";
         }
         break;
-        
+
     case '4':
         echo "Exiting...\n";
         break;
-        
+
     default:
         echo "Invalid choice. Exiting...\n";
         break;

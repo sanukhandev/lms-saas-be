@@ -18,7 +18,7 @@ echo "=== Tenant Consistency Check ===\n\n";
 // Models that should have tenant_id
 $modelsWithTenant = [
     'categories' => 'Category',
-    'certificates' => 'Certificate', 
+    'certificates' => 'Certificate',
     'class_sessions' => 'ClassSession',
     'courses' => 'Course',
     'course_contents' => 'CourseContent',
@@ -63,10 +63,10 @@ if (!empty($issues)) {
     foreach ($issues as $table) {
         echo "  - $table\n";
     }
-    
+
     echo "\nMigrations that may need fixing:\n";
     $migrationFiles = glob('database/migrations/*.php');
-    
+
     foreach ($issues as $table) {
         foreach ($migrationFiles as $file) {
             if (strpos(basename($file), "create_{$table}_table") !== false) {
