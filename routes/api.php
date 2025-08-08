@@ -100,6 +100,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/{course}/schedule', [App\Http\Controllers\Api\CourseController::class, 'getSchedule']);
             Route::put('/{course}/schedule', [App\Http\Controllers\Api\CourseController::class, 'updateSchedule']);
 
+            // New Hierarchy Management Routes
+            Route::post('/hierarchy', [App\Http\Controllers\Api\CourseController::class, 'createHierarchyNode']);
+            Route::get('/{course}/hierarchy', [App\Http\Controllers\Api\CourseController::class, 'getHierarchyTree']);
+            Route::put('/hierarchy/{node}/move', [App\Http\Controllers\Api\CourseController::class, 'moveHierarchyNode']);
+            Route::get('/{course}/classes', [App\Http\Controllers\Api\CourseController::class, 'getCourseClasses']);
+
             // Course Content Management (Modules & Chapters)
             Route::prefix('/{course}/content')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\CourseContentController::class, 'index']);
@@ -109,7 +115,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'show']);
                 Route::put('/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'update']);
                 Route::delete('/{content}', [App\Http\Controllers\Api\CourseContentController::class, 'destroy']);
-                
+
                 // Class Scheduling for specific content
                 Route::prefix('/{content}/classes')->group(function () {
                     Route::get('/', [App\Http\Controllers\Api\ClassScheduleController::class, 'getContentClasses']);

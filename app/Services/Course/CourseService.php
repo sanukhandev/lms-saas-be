@@ -4,7 +4,7 @@ namespace App\Services\Course;
 
 use App\DTOs\Course\{CourseDTO, CourseStatsDTO};
 use App\Models\{Course, Category, User, StudentProgress};
-use Illuminate\Support\Facades\{DB, Cache};
+use Illuminate\Support\Facades\{DB, Cache, Log};
 use Illuminate\Pagination\{LengthAwarePaginator, Paginator};
 use Illuminate\Support\Str;
 
@@ -15,46 +15,60 @@ class CourseService
 
     public function getCoursesList(string $tenantId, array $filters = [], int $page = 1, int $perPage = 15): LengthAwarePaginator
     {
-        $cacheKey = "courses_list_{$tenantId}_" . md5(serialize($filters) . "_{$page}_{$perPage}");
+        // Temporarily disable cache completely to avoid Redis issues
+        return $this->getCoursesListFromDatabase($tenantId, $filters, $page, $perPage);
+    }
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($tenantId, $filters, $page, $perPage) {
-            $query = Course::with(['category', 'instructors', 'students'])
-                ->withCount(['students as active_students_count', 'contents'])
-                ->where('tenant_id', $tenantId);
+    private function getCoursesListFromDatabase(string $tenantId, array $filters, int $page, int $perPage): LengthAwarePaginator
+    {
+        $query = Course::with(['category', 'instructors', 'students'])
+            ->withCount(['students as active_students_count', 'contents'])
+            ->where('tenant_id', $tenantId);
 
-            $this->applyFilters($query, $filters);
+        $this->applyFilters($query, $filters);
 
-            $sortBy = $filters['sort_by'] ?? 'created_at';
-            $sortOrder = $filters['sort_order'] ?? 'desc';
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortOrder = $filters['sort_order'] ?? 'desc';
 
-            $query->orderBy($sortBy === 'enrollment_count' ? 'active_students_count' : $sortBy, $sortOrder);
+        $query->orderBy($sortBy === 'enrollment_count' ? 'active_students_count' : $sortBy, $sortOrder);
 
-            $courses = $query->paginate($perPage, ['*'], 'page', $page);
+        $courses = $query->paginate($perPage, ['*'], 'page', $page);
 
-            $courseDTOs = $courses->getCollection()->map(fn($course) => $this->transformCourseToEnhancedDTO($course, $tenantId));
+        $courseDTOs = $courses->getCollection()->map(fn($course) => $this->transformCourseToEnhancedDTO($course, $tenantId));
 
-            return new LengthAwarePaginator(
-                $courseDTOs,
-                $courses->total(),
-                $courses->perPage(),
-                $courses->currentPage(),
-                ['path' => Paginator::resolveCurrentPath()]
-            );
-        });
+        return new LengthAwarePaginator(
+            $courseDTOs,
+            $courses->total(),
+            $courses->perPage(),
+            $courses->currentPage(),
+            ['path' => Paginator::resolveCurrentPath()]
+        );
     }
 
     public function getCourseById(string $courseId, string $tenantId): ?CourseDTO
     {
-        $cacheKey = "course_{$courseId}_{$tenantId}";
+        try {
+            $cacheKey = "course_{$courseId}_{$tenantId}";
 
-        return Cache::tags(["tenant:{$tenantId}", "course:{$courseId}"])->remember($cacheKey, self::CACHE_TTL, function () use ($courseId, $tenantId) {
+            return Cache::tags(["tenant:{$tenantId}", "course:{$courseId}"])->remember($cacheKey, self::CACHE_TTL, function () use ($courseId, $tenantId) {
+                $course = Course::with(['category', 'instructors', 'contents'])
+                    ->where('id', $courseId)
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+
+                return $course ? $this->transformCourseToDTO($course, $tenantId) : null;
+            });
+        } catch (\Exception $e) {
+            // Fallback to direct database query if cache fails
+            Log::warning('Cache failed for getCourseById, falling back to database query', ['error' => $e->getMessage(), 'courseId' => $courseId]);
+
             $course = Course::with(['category', 'instructors', 'contents'])
                 ->where('id', $courseId)
                 ->where('tenant_id', $tenantId)
                 ->first();
 
             return $course ? $this->transformCourseToDTO($course, $tenantId) : null;
-        });
+        }
     }
 
     public function createCourse(array $data, string $tenantId): CourseDTO
@@ -163,7 +177,8 @@ class CourseService
             'category_id' => 'category_id',
             'is_active' => 'is_active',
             'level' => 'level',
-            'status' => 'status'
+            'status' => 'status',
+            'content_type' => 'content_type'
         ];
 
         foreach ($map as $key => $column) {
@@ -175,8 +190,8 @@ class CourseService
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('title', 'like', "%{$filters['search']}%")
-                  ->orWhere('description', 'like', "%{$filters['search']}%")
-                  ->orWhere('short_description', 'like', "%{$filters['search']}%");
+                    ->orWhere('description', 'like', "%{$filters['search']}%")
+                    ->orWhere('short_description', 'like', "%{$filters['search']}%");
             });
         }
 
@@ -256,11 +271,7 @@ class CourseService
         $activeStudents = $course->active_students_count ?? 0;
         $contentCount = $course->contents_count ?? 0;
 
-        $completionRate = Cache::remember("course_completion_rate_{$course->id}_{$tenantId}", self::CACHE_TTL, function () use ($course, $activeStudents) {
-            if ($activeStudents === 0) return 0;
-            $completed = StudentProgress::where('course_id', $course->id)->where('completion_percentage', 100)->distinct('user_id')->count();
-            return round(($completed / $activeStudents) * 100, 2);
-        });
+        $completionRate = $this->getCachedCompletionRate($course, $tenantId, $activeStudents);
 
         $primaryInstructor = $course->instructors->first();
 
@@ -269,9 +280,9 @@ class CourseService
 
     private function transformCourseToDTO(Course $course, string $tenantId): CourseDTO
     {
-        $enrollmentCount = Cache::remember("course_enrollments_{$course->id}_{$tenantId}", self::CACHE_TTL, fn() => $course->enrollments()->count());
-        $completionRate = Cache::remember("course_completion_rate_{$course->id}_{$tenantId}", self::CACHE_TTL, fn() => $enrollmentCount > 0 ? round((StudentProgress::where('course_id', $course->id)->where('completion_percentage', 100)->distinct('user_id')->count() / $enrollmentCount) * 100, 2) : 0);
-        $contentCount = Cache::remember("course_content_count_{$course->id}_{$tenantId}", self::CACHE_TTL, fn() => $course->contents()->count());
+        $enrollmentCount = $this->getCachedEnrollmentCount($course, $tenantId);
+        $completionRate = $this->getCachedCompletionRate($course, $tenantId, $enrollmentCount);
+        $contentCount = $this->getCachedContentCount($course, $tenantId);
 
         return $this->buildDTO($course, $tenantId, $enrollmentCount, $completionRate, $contentCount, $course->instructor);
     }
@@ -304,8 +315,47 @@ class CourseService
             enrollmentCount: $enrollmentCount,
             completionRate: $completionRate,
             contentCount: $contentCount,
+            contentType: $course->content_type,
+            parentId: $course->parent_id,
+            position: $course->position,
             createdAt: $course->created_at,
             updatedAt: $course->updated_at
         );
+    }
+
+    private function getCachedCompletionRate(Course $course, string $tenantId, int $activeStudents): float
+    {
+        try {
+            return Cache::remember("course_completion_rate_{$course->id}_{$tenantId}", self::CACHE_TTL, function () use ($course, $activeStudents) {
+                if ($activeStudents === 0) return 0;
+                $completed = StudentProgress::where('course_id', $course->id)->where('completion_percentage', 100)->distinct('user_id')->count();
+                return round(($completed / $activeStudents) * 100, 2);
+            });
+        } catch (\Exception $e) {
+            Log::warning('Cache failed for completion rate, calculating directly', ['error' => $e->getMessage(), 'courseId' => $course->id]);
+            if ($activeStudents === 0) return 0;
+            $completed = StudentProgress::where('course_id', $course->id)->where('completion_percentage', 100)->distinct('user_id')->count();
+            return round(($completed / $activeStudents) * 100, 2);
+        }
+    }
+
+    private function getCachedEnrollmentCount(Course $course, string $tenantId): int
+    {
+        try {
+            return Cache::remember("course_enrollments_{$course->id}_{$tenantId}", self::CACHE_TTL, fn() => $course->enrollments()->count());
+        } catch (\Exception $e) {
+            Log::warning('Cache failed for enrollment count, calculating directly', ['error' => $e->getMessage(), 'courseId' => $course->id]);
+            return $course->enrollments()->count();
+        }
+    }
+
+    private function getCachedContentCount(Course $course, string $tenantId): int
+    {
+        try {
+            return Cache::remember("course_content_count_{$course->id}_{$tenantId}", self::CACHE_TTL, fn() => $course->contents()->count());
+        } catch (\Exception $e) {
+            Log::warning('Cache failed for content count, calculating directly', ['error' => $e->getMessage(), 'courseId' => $course->id]);
+            return $course->contents()->count();
+        }
     }
 }

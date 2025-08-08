@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Course\{CourseIndexRequest, CreateCourseRequest, UpdateCourseRequest};
+use App\Http\Requests\CreateCourseHierarchyRequest;
 use App\Services\Course\CourseService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
@@ -257,6 +258,247 @@ class CourseController extends Controller
             }
         }
         return $this->successResponse([], 'Schedule updated successfully');
+    }
+
+    /**
+     * Create a new hierarchy node (course, module, chapter, or class)
+     */
+    public function createHierarchyNode(CreateCourseHierarchyRequest $request): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            $data = $request->validated();
+            $data['tenant_id'] = $tenantId;
+
+            // Set position if not provided
+            if (!isset($data['position'])) {
+                $data['position'] = $this->getNextPosition($data['parent_id'], $data['content_type']);
+            }
+
+            $node = Course::create($data);
+
+            return $this->successResponse(
+                $node->load(['parent', 'children'])->toArray(),
+                'Hierarchy node created successfully',
+                201
+            );
+        } catch (\Exception $e) {
+            Log::error('Error creating hierarchy node', [
+                'error' => $e->getMessage(),
+                'tenant_id' => $tenantId,
+                'data' => $data,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to create hierarchy node',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Get complete course hierarchy tree
+     */
+    public function getHierarchyTree(string $courseId): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+
+            $course = Course::where('id', $courseId)
+                ->where('tenant_id', $tenantId)
+                ->where('content_type', 'course')
+                ->first();
+
+            if (!$course) {
+                return $this->errorResponse(
+                    message: 'Course not found',
+                    code: 404
+                );
+            }
+
+            $tree = $this->buildHierarchyTree($course);
+
+            return $this->successResponse(
+                $tree,
+                'Course hierarchy retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error retrieving course hierarchy', [
+                'error' => $e->getMessage(),
+                'course_id' => $courseId,
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve course hierarchy',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Move a hierarchy node to a new parent or position
+     */
+    public function moveHierarchyNode(Request $request, string $nodeId): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            $data = $request->validate([
+                'parent_id' => 'nullable|exists:courses,id',
+                'position' => 'nullable|integer|min:0',
+            ]);
+
+            $node = Course::where('id', $nodeId)
+                ->where('tenant_id', $tenantId)
+                ->first();
+
+            if (!$node) {
+                return $this->errorResponse(
+                    message: 'Node not found',
+                    code: 404
+                );
+            }
+
+            // Validate the move
+            if (isset($data['parent_id'])) {
+                $newParent = Course::find($data['parent_id']);
+                if ($newParent && !$newParent->canHaveChildType($node->content_type)) {
+                    return $this->errorResponse(
+                        message: "A {$newParent->content_type} cannot have {$node->content_type} children.",
+                        code: 400
+                    );
+                }
+            }
+
+            // Update the node
+            if (isset($data['parent_id'])) {
+                $node->parent_id = $data['parent_id'];
+            }
+
+            if (isset($data['position'])) {
+                $node->position = $data['position'];
+            } else {
+                // Auto-assign position
+                $node->position = $this->getNextPosition($node->parent_id, $node->content_type);
+            }
+
+            $node->save();
+
+            return $this->successResponse(
+                $node->load(['parent', 'children'])->toArray(),
+                'Node moved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error moving hierarchy node', [
+                'error' => $e->getMessage(),
+                'node_id' => $nodeId,
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to move node',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Get all classes for a course (from entire hierarchy)
+     */
+    public function getCourseClasses(string $courseId): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+
+            $course = Course::where('id', $courseId)
+                ->where('tenant_id', $tenantId)
+                ->where('content_type', 'course')
+                ->first();
+
+            if (!$course) {
+                return $this->errorResponse(
+                    message: 'Course not found',
+                    code: 404
+                );
+            }
+
+            $classes = $course->getAllClasses()->map(function ($class) {
+                return [
+                    'id' => $class->id,
+                    'title' => $class->title,
+                    'description' => $class->description,
+                    'duration_minutes' => $class->duration_minutes,
+                    'video_url' => $class->video_url,
+                    'hierarchy_path' => $class->getHierarchyPath(),
+                    'parent' => $class->parent ? [
+                        'id' => $class->parent->id,
+                        'title' => $class->parent->title,
+                        'content_type' => $class->parent->content_type
+                    ] : null,
+                ];
+            });
+
+            return $this->successResponse(
+                $classes->toArray(),
+                'Course classes retrieved successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error retrieving course classes', [
+                'error' => $e->getMessage(),
+                'course_id' => $courseId,
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve course classes',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Build complete hierarchy tree for a course
+     */
+    private function buildHierarchyTree(Course $course): array
+    {
+        $data = [
+            'id' => $course->id,
+            'title' => $course->title,
+            'description' => $course->description,
+            'content_type' => $course->content_type,
+            'position' => $course->position,
+            'duration_minutes' => $course->duration_minutes,
+            'video_url' => $course->video_url,
+            'learning_objectives' => $course->learning_objectives,
+            'children' => []
+        ];
+
+        foreach ($course->children()->orderBy('position')->get() as $child) {
+            $data['children'][] = $this->buildHierarchyTree($child);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get next position for a new node
+     */
+    private function getNextPosition(?string $parentId, string $contentType): int
+    {
+        $query = Course::where('tenant_id', $this->getTenantId())
+            ->where('content_type', $contentType);
+
+        if ($parentId) {
+            $query->where('parent_id', $parentId);
+        } else {
+            $query->whereNull('parent_id');
+        }
+
+        return $query->max('position') + 1;
     }
 
     /**

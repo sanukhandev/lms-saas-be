@@ -17,7 +17,7 @@ class CourseIndexRequest extends FormRequest
         return [
             'category_id' => ['sometimes', 'nullable', 'uuid', 'exists:categories,id'],
             'instructor_id' => ['sometimes', 'nullable', 'uuid', 'exists:users,id'],
-            'search' => ['sometimes', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
             'status' => ['sometimes', 'string', Rule::in(['draft', 'published', 'archived'])],
             'level' => ['sometimes', 'string', Rule::in(['beginner', 'intermediate', 'advanced'])],
@@ -25,6 +25,7 @@ class CourseIndexRequest extends FormRequest
             'price_max' => ['sometimes', 'numeric', 'min:0'],
             'sort_by' => ['sometimes', 'string', Rule::in(['title', 'price', 'created_at', 'updated_at', 'enrollment_count'])],
             'sort_order' => ['sometimes', 'string', Rule::in(['asc', 'desc'])],
+            'content_type' => ['sometimes', 'string', Rule::in(['course', 'module', 'chapter', 'class'])],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
         ];

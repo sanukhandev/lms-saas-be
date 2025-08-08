@@ -32,6 +32,9 @@ class CourseDTO
         public readonly int $enrollmentCount,
         public readonly float $completionRate,
         public readonly int $contentCount,
+        public readonly ?string $contentType,
+        public readonly ?string $parentId,
+        public readonly ?int $position,
         public readonly Carbon $createdAt,
         public readonly Carbon $updatedAt,
     ) {}
@@ -64,6 +67,9 @@ class CourseDTO
             'enrollmentCount' => $this->enrollmentCount,
             'completionRate' => $this->completionRate,
             'contentCount' => $this->contentCount,
+            'contentType' => $this->contentType,
+            'parentId' => $this->parentId,
+            'position' => $this->position,
             'createdAt' => $this->createdAt->toISOString(),
             'updatedAt' => $this->updatedAt->toISOString(),
         ];

@@ -52,7 +52,7 @@ class Course extends Model
         'video_url',
         'duration_minutes'
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
@@ -65,17 +65,17 @@ class Course extends Model
         'duration_hours' => 'float',
     ];
 
-    public function tenant():BelongsTo
+    public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
     }
 
-    public function category():BelongsTo
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function contents():HasMany
+    public function contents(): HasMany
     {
         return $this->hasMany(CourseContent::class);
     }
@@ -128,7 +128,7 @@ class Course extends Model
     {
         return $this->belongsTo(Course::class, 'parent_id');
     }
-    
+
     /**
      * Get children (modules, chapters, lessons)
      */
@@ -136,33 +136,112 @@ class Course extends Model
     {
         return $this->hasMany(Course::class, 'parent_id')->orderBy('position');
     }
-    
+
     /**
      * Get only modules (first level children)
      */
     public function modules(): HasMany
     {
         return $this->hasMany(Course::class, 'parent_id')
-                    ->where('content_type', 'module')
-                    ->orderBy('position');
+            ->where('content_type', 'module')
+            ->orderBy('position');
     }
-    
+
     /**
      * Get only chapters (can be direct children or through modules)
      */
     public function chapters(): HasMany
     {
         return $this->hasMany(Course::class, 'parent_id')
-                    ->where('content_type', 'chapter')
-                    ->orderBy('position');
+            ->where('content_type', 'chapter')
+            ->orderBy('position');
     }
-    
+
+    /**
+     * Get only classes (can be children of course, module, or chapter)
+     */
+    public function classes(): HasMany
+    {
+        return $this->hasMany(Course::class, 'parent_id')
+            ->where('content_type', 'class')
+            ->orderBy('position');
+    }
+
+    /**
+     * Get all classes recursively from this node and its descendants
+     */
+    public function getAllClasses(): \Illuminate\Database\Eloquent\Collection
+    {
+        $classes = collect();
+
+        // Get direct classes
+        $classes = $classes->merge($this->classes);
+
+        // Get classes from children recursively
+        foreach ($this->children as $child) {
+            if (in_array($child->content_type, ['module', 'chapter'])) {
+                $classes = $classes->merge($child->getAllClasses());
+            }
+        }
+
+        return $classes;
+    }
+
+    /**
+     * Check if this node can have children of a specific type
+     */
+    public function canHaveChildType(string $childType): bool
+    {
+        $allowedChildren = [
+            'course' => ['module', 'chapter', 'class'],
+            'module' => ['chapter', 'class'],
+            'chapter' => ['class'],
+            'class' => [], // Classes cannot have children
+            'lesson' => [] // Lessons cannot have children (legacy support)
+        ];
+
+        return in_array($childType, $allowedChildren[$this->content_type] ?? []);
+    }
+
+    /**
+     * Get the hierarchy path from root to this node
+     */
+    public function getHierarchyPath(): array
+    {
+        $path = [];
+        $current = $this;
+
+        while ($current) {
+            array_unshift($path, [
+                'id' => $current->id,
+                'title' => $current->title,
+                'content_type' => $current->content_type,
+                'position' => $current->position
+            ]);
+            $current = $current->parent;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Get the root course for this node
+     */
+    public function getRootCourse(): Course
+    {
+        $current = $this;
+        while ($current->parent && $current->parent->content_type !== 'course') {
+            $current = $current->parent;
+        }
+        return $current->parent ?? $current;
+    }
+
     /**
      * Recursive method to get entire course tree
      */
     public function getTree()
     {
-        return $this->children()->with(['children' => function($query) {
+        return $this->children()->with(['children' => function ($query) {
             $query->orderBy('position');
         }])->orderBy('position')->get();
     }
