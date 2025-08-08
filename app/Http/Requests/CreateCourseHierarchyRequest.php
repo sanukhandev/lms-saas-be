@@ -46,6 +46,7 @@ class CreateCourseHierarchyRequest extends FormRequest
             'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
             'thumbnail_url' => 'nullable|url',
+            'banner_url' => 'nullable|url',
             'preview_video_url' => 'nullable|url',
             'requirements' => 'nullable|array',
             'what_you_will_learn' => 'nullable|array',
