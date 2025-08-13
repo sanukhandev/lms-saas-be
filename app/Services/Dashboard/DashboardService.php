@@ -26,7 +26,7 @@ class DashboardService
      */
     public function getDashboardStats(string $tenantId): DashboardStatsDTO
     {
-        return Cache::tags(['dashboard', "tenant:{$tenantId}"])->remember("t{$tenantId}:dashboard:stats", 1800, function () use ($tenantId) {
+        return Cache::remember("t{$tenantId}:dashboard:stats", 1800, function () use ($tenantId) {
             $totalUsers = User::where('tenant_id', $tenantId)->count();
             $totalCourses = Course::where('tenant_id', $tenantId)->count();
             $totalEnrollments = $this->getTotalEnrollments($tenantId);
@@ -105,7 +105,7 @@ class DashboardService
     {
         $cacheKey = "t{$tenantId}:dashboard:courses:progress:{$page}:{$perPage}";
 
-        return Cache::tags(['dashboard', "tenant:{$tenantId}", 'courses'])->remember($cacheKey, 1800, function () use ($tenantId, $page, $perPage) {
+        return Cache::remember($cacheKey, 1800, function () use ($tenantId, $page, $perPage) {
             // Get total count first
             $total = Course::where('tenant_id', $tenantId)->count();
 
@@ -198,7 +198,7 @@ class DashboardService
     {
         $cacheKey = "t{$tenantId}:dashboard:users:progress:{$page}:{$perPage}";
 
-        return Cache::tags(['dashboard', "tenant:{$tenantId}", 'users'])->remember($cacheKey, 1800, function () use ($tenantId, $page, $perPage) {
+        return Cache::remember($cacheKey, 1800, function () use ($tenantId, $page, $perPage) {
             // Get total count first
             $total = User::where('tenant_id', $tenantId)
                 ->where('role', '!=', 'super_admin')
@@ -300,7 +300,7 @@ class DashboardService
      */
     public function getChartData(string $tenantId): ChartDataDTO
     {
-        return Cache::tags(['dashboard', "tenant:{$tenantId}", 'charts'])->remember("t{$tenantId}:dashboard:charts", 3600, function () use ($tenantId) {
+        return Cache::remember("t{$tenantId}:dashboard:charts", 3600, function () use ($tenantId) {
             $enrollmentTrends = $this->getEnrollmentTrends($tenantId);
             $completionTrends = $this->getCompletionTrends($tenantId);
             $revenueTrends = $this->getRevenueTrends($tenantId);
