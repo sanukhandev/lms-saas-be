@@ -34,7 +34,6 @@ class Course extends Model
         'duration_hours',
         'instructor_id',
         'thumbnail_url',
-        'banner_url',
         'preview_video_url',
         'requirements',
         'what_you_will_learn',

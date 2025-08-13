@@ -46,7 +46,6 @@ class CreateCourseHierarchyRequest extends FormRequest
             'price' => 'nullable|numeric|min:0',
             'currency' => 'nullable|string|size:3',
             'thumbnail_url' => 'nullable|url',
-            'banner_url' => 'nullable|url',
             'preview_video_url' => 'nullable|url',
             'requirements' => 'nullable|array',
             'what_you_will_learn' => 'nullable|array',
@@ -93,9 +92,16 @@ class CreateCourseHierarchyRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            // Ensure course-level fields are only provided for courses
+            // Require category_id only for root-level courses (no parent)
+            if ($this->input('content_type') === 'course' && !$this->input('parent_id')) {
+                if (!$this->filled('category_id')) {
+                    $validator->errors()->add('category_id', 'The category field is required for root-level courses.');
+                }
+            }
+
+            // Ensure certain course-level fields are only provided for courses
             if ($this->input('content_type') !== 'course') {
-                $courseOnlyFields = ['category_id', 'instructor_id', 'schedule_level', 'access_model', 'price', 'currency'];
+                $courseOnlyFields = ['instructor_id', 'schedule_level', 'access_model', 'price', 'currency'];
                 foreach ($courseOnlyFields as $field) {
                     if ($this->filled($field)) {
                         $validator->errors()->add($field, "The {$field} field is only allowed for courses.");

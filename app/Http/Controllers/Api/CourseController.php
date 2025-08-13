@@ -270,9 +270,17 @@ class CourseController extends Controller
             $data = $request->validated();
             $data['tenant_id'] = $tenantId;
 
+            // For child nodes, inherit category_id from parent
+            if (isset($data['parent_id']) && $data['parent_id'] && !isset($data['category_id'])) {
+                $parent = Course::find($data['parent_id']);
+                if ($parent) {
+                    $data['category_id'] = $parent->category_id;
+                }
+            }
+
             // Set position if not provided
             if (!isset($data['position'])) {
-                $data['position'] = $this->getNextPosition($data['parent_id'], $data['content_type']);
+                $data['position'] = $this->getNextPosition($data['parent_id'] ?? null, $data['content_type']);
             }
 
             $node = Course::create($data);
