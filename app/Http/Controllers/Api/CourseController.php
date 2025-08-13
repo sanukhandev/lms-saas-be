@@ -306,6 +306,65 @@ class CourseController extends Controller
     }
 
     /**
+     * Update an existing hierarchy node (course, module, chapter, or class)
+     */
+    public function updateHierarchyNode(CreateCourseHierarchyRequest $request, string $nodeId): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            $data = $request->validated();
+
+            // Find the node to update
+            $node = Course::where('id', $nodeId)
+                ->where('tenant_id', $tenantId)
+                ->first();
+
+            if (!$node) {
+                return $this->errorResponse(
+                    message: 'Hierarchy node not found',
+                    code: 404
+                );
+            }
+
+            // Prevent changing content_type (this could break hierarchy integrity)
+            if (isset($data['content_type']) && $data['content_type'] !== $node->content_type) {
+                return $this->errorResponse(
+                    message: 'Cannot change content type of existing node',
+                    code: 400
+                );
+            }
+
+            // For child nodes, inherit category_id from parent if not provided
+            if (isset($data['parent_id']) && $data['parent_id'] && !isset($data['category_id'])) {
+                $parent = Course::find($data['parent_id']);
+                if ($parent) {
+                    $data['category_id'] = $parent->category_id;
+                }
+            }
+
+            // Update the node
+            $node->update($data);
+
+            return $this->successResponse(
+                $node->load(['parent', 'children'])->toArray(),
+                'Hierarchy node updated successfully'
+            );
+        } catch (\Exception $e) {
+            Log::error('Error updating hierarchy node', [
+                'error' => $e->getMessage(),
+                'node_id' => $nodeId,
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to update hierarchy node',
+                code: 500
+            );
+        }
+    }
+
+    /**
      * Get complete course hierarchy tree
      */
     public function getHierarchyTree(string $courseId): JsonResponse

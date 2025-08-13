@@ -102,6 +102,7 @@ Route::prefix('v1')->group(function () {
 
             // New Hierarchy Management Routes
             Route::post('/hierarchy', [App\Http\Controllers\Api\CourseController::class, 'createHierarchyNode']);
+            Route::put('/hierarchy/{node}', [App\Http\Controllers\Api\CourseController::class, 'updateHierarchyNode']);
             Route::get('/{course}/hierarchy', [App\Http\Controllers\Api\CourseController::class, 'getHierarchyTree']);
             Route::put('/hierarchy/{node}/move', [App\Http\Controllers\Api\CourseController::class, 'moveHierarchyNode']);
             Route::get('/{course}/classes', [App\Http\Controllers\Api\CourseController::class, 'getCourseClasses']);
