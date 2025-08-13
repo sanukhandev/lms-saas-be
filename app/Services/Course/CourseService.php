@@ -163,7 +163,8 @@ class CourseService
             'category_id' => 'category_id',
             'is_active' => 'is_active',
             'level' => 'level',
-            'status' => 'status'
+            'status' => 'status',
+            'content_type' => 'content_type'
         ];
 
         foreach ($map as $key => $column) {
@@ -175,8 +176,8 @@ class CourseService
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('title', 'like', "%{$filters['search']}%")
-                  ->orWhere('description', 'like', "%{$filters['search']}%")
-                  ->orWhere('short_description', 'like', "%{$filters['search']}%");
+                    ->orWhere('description', 'like', "%{$filters['search']}%")
+                    ->orWhere('short_description', 'like', "%{$filters['search']}%");
             });
         }
 
