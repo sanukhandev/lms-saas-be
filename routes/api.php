@@ -134,7 +134,7 @@ Route::prefix('v1')->group(function () {
                 Route::get('/stats', [App\Http\Controllers\Api\CourseContentEditorController::class, 'stats']);
                 Route::post('/upload', [App\Http\Controllers\Api\CourseContentEditorController::class, 'uploadFile']);
                 Route::post('/reorder', [App\Http\Controllers\Api\CourseContentEditorController::class, 'reorder']);
-                
+
                 Route::prefix('/{content}')->group(function () {
                     Route::get('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'show']);
                     Route::put('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'update']);

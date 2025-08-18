@@ -69,7 +69,6 @@ class CourseContentEditorService
                     $content->load(['course', 'parent', 'children'])
                 )->toArray()
             ];
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to create course content', [
@@ -127,7 +126,6 @@ class CourseContentEditorService
                     $content->fresh()->load(['course', 'parent', 'children'])
                 )->toArray()
             ];
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update course content', [
@@ -169,7 +167,6 @@ class CourseContentEditorService
                 'success' => true,
                 'message' => 'Content deleted successfully'
             ];
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to delete course content', [
@@ -212,7 +209,6 @@ class CourseContentEditorService
                 'success' => true,
                 'message' => 'Content reordered successfully'
             ];
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to reorder course content', [
@@ -257,14 +253,15 @@ class CourseContentEditorService
             if (isset($filters['search'])) {
                 $query->where(function ($q) use ($filters) {
                     $q->where('title', 'like', '%' . $filters['search'] . '%')
-                      ->orWhere('description', 'like', '%' . $filters['search'] . '%');
+                        ->orWhere('description', 'like', '%' . $filters['search'] . '%');
                 });
             }
 
             $contents = $query->orderBy('sort_order')->get();
 
             // Convert to DTOs
-            $contentDTOs = $contents->map(fn($content) => 
+            $contentDTOs = $contents->map(
+                fn($content) =>
                 CourseContentEditorDTO::fromModel($content)
             );
 
@@ -278,7 +275,6 @@ class CourseContentEditorService
                 'data' => $contentDTOs->map(fn($dto) => $dto->toArray())->toArray(),
                 'course' => $course
             ];
-
         } catch (\Exception $e) {
             Log::error('Failed to get course content', [
                 'course_id' => $courseId,
@@ -309,7 +305,7 @@ class CourseContentEditorService
             $duplicate->title = $original->title . ' (Copy)';
             $duplicate->status = 'draft';
             $duplicate->published_at = null;
-            
+
             // Handle file duplication
             if ($original->file_path) {
                 $newFilePath = $this->duplicateFile($original->file_path, $original->course_id);
@@ -334,7 +330,6 @@ class CourseContentEditorService
                     $duplicate->load(['course', 'parent'])
                 )->toArray()
             ];
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to duplicate course content', [
@@ -355,7 +350,7 @@ class CourseContentEditorService
     private function handleFileUpload(UploadedFile $file, int $courseId): array
     {
         $path = $file->store("course-content/{$courseId}", 'public');
-        
+
         return [
             'file_path' => $path,
             'file_type' => $file->getMimeType(),
@@ -384,7 +379,7 @@ class CourseContentEditorService
     private function buildContentTree($contentDTOs, $parentId = null): array
     {
         $tree = [];
-        
+
         foreach ($contentDTOs as $contentDTO) {
             if ($contentDTO->parentId == $parentId) {
                 $children = $this->buildContentTree($contentDTOs, $contentDTO->id);
@@ -423,7 +418,7 @@ class CourseContentEditorService
                 );
             }
         }
-        
+
         return $tree;
     }
 
@@ -460,7 +455,6 @@ class CourseContentEditorService
                 'success' => true,
                 'data' => $stats
             ];
-
         } catch (\Exception $e) {
             Log::error('Failed to get content stats', [
                 'course_id' => $courseId,

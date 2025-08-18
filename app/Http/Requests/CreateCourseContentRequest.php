@@ -20,8 +20,15 @@ class CreateCourseContentRequest extends FormRequest
             'type' => [
                 'required',
                 Rule::in([
-                    'module', 'chapter', 'lesson', 'video', 'document', 
-                    'quiz', 'assignment', 'text', 'live_session'
+                    'module',
+                    'chapter',
+                    'lesson',
+                    'video',
+                    'document',
+                    'quiz',
+                    'assignment',
+                    'text',
+                    'live_session'
                 ])
             ],
             'parent_id' => 'nullable|exists:course_contents,id',

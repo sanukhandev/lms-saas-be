@@ -10,7 +10,8 @@ $baseUrl = 'http://localhost:8000/api/v1';
 $courseId = 1; // Update with actual course ID
 $authToken = 'your-auth-token'; // Update with actual token
 
-function testContentEditorAPI($baseUrl, $courseId, $authToken) {
+function testContentEditorAPI($baseUrl, $courseId, $authToken)
+{
     $headers = [
         'Authorization' => "Bearer {$authToken}",
         'Accept' => 'application/json',
@@ -25,7 +26,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
     try {
         $response = Http::withHeaders($headers)
             ->get("{$baseUrl}/courses/{$courseId}/editor/content-types");
-        
+
         echo "Status: " . $response->status() . "\n";
         echo "Response: " . $response->body() . "\n\n";
     } catch (Exception $e) {
@@ -37,7 +38,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
     try {
         $response = Http::withHeaders($headers)
             ->get("{$baseUrl}/courses/{$courseId}/editor");
-        
+
         echo "Status: " . $response->status() . "\n";
         echo "Response: " . $response->body() . "\n\n";
     } catch (Exception $e) {
@@ -64,7 +65,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
 
         $response = Http::withHeaders($headers)
             ->post("{$baseUrl}/courses/{$courseId}/editor", $contentData);
-        
+
         echo "Status: " . $response->status() . "\n";
         echo "Response: " . $response->body() . "\n\n";
 
@@ -84,7 +85,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
 
                 $response = Http::withHeaders($headers)
                     ->put("{$baseUrl}/courses/{$courseId}/editor/{$contentId}", $updateData);
-                
+
                 echo "Status: " . $response->status() . "\n";
                 echo "Response: " . $response->body() . "\n\n";
             } catch (Exception $e) {
@@ -96,7 +97,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
             try {
                 $response = Http::withHeaders($headers)
                     ->get("{$baseUrl}/courses/{$courseId}/editor/{$contentId}");
-                
+
                 echo "Status: " . $response->status() . "\n";
                 echo "Response: " . $response->body() . "\n\n";
             } catch (Exception $e) {
@@ -108,7 +109,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
             try {
                 $response = Http::withHeaders($headers)
                     ->post("{$baseUrl}/courses/{$courseId}/editor/{$contentId}/duplicate");
-                
+
                 echo "Status: " . $response->status() . "\n";
                 echo "Response: " . $response->body() . "\n\n";
 
@@ -123,7 +124,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
             try {
                 $response = Http::withHeaders($headers)
                     ->get("{$baseUrl}/courses/{$courseId}/editor/stats");
-                
+
                 echo "Status: " . $response->status() . "\n";
                 echo "Response: " . $response->body() . "\n\n";
             } catch (Exception $e) {
@@ -136,7 +137,7 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
                 try {
                     $response = Http::withHeaders($headers)
                         ->delete("{$baseUrl}/courses/{$courseId}/editor/{$duplicateId}");
-                    
+
                     echo "Status: " . $response->status() . "\n";
                     echo "Response: " . $response->body() . "\n\n";
                 } catch (Exception $e) {
@@ -144,7 +145,6 @@ function testContentEditorAPI($baseUrl, $courseId, $authToken) {
                 }
             }
         }
-
     } catch (Exception $e) {
         echo "Error: " . $e->getMessage() . "\n\n";
     }

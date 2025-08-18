@@ -71,7 +71,7 @@ class CourseContentEditorDTO
             hierarchyLevel: $content->getHierarchyLevel(),
             createdAt: $content->created_at,
             updatedAt: $content->updated_at,
-            children: $content->relationLoaded('children') 
+            children: $content->relationLoaded('children')
                 ? $content->children->map(fn($child) => self::fromModel($child))
                 : null,
             parent: $content->relationLoaded('parent') && $content->parent

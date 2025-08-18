@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 class CourseContent extends Model
 {
     use BelongsToTenant, HasFactory;
-    
+
     protected $fillable = [
         'course_id',
         'parent_id',
@@ -103,7 +103,7 @@ class CourseContent extends Model
         if (!$this->file_path) {
             return null;
         }
-        
+
         return asset('storage/' . $this->file_path);
     }
 
@@ -115,7 +115,7 @@ class CourseContent extends Model
 
         $units = ['B', 'KB', 'MB', 'GB'];
         $bytes = $this->file_size;
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
@@ -126,7 +126,7 @@ class CourseContent extends Model
     public function getFormattedDurationAttribute(): ?string
     {
         $duration = $this->estimated_duration ?? $this->duration_mins;
-        
+
         if (!$duration) {
             return null;
         }
@@ -168,7 +168,7 @@ class CourseContent extends Model
 
     public function getContentTypeIcon(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'video' => 'play-circle',
             'document' => 'file-text',
             'quiz' => 'help-circle',
@@ -192,12 +192,12 @@ class CourseContent extends Model
     {
         $level = 0;
         $current = $this;
-        
+
         while ($current->parent) {
             $level++;
             $current = $current->parent;
         }
-        
+
         return $level;
     }
 }
