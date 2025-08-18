@@ -268,6 +268,8 @@ class CourseContentEditorService
             // Build tree structure if no parent_id filter
             if (!isset($filters['parent_id'])) {
                 $contentDTOs = $this->buildContentTree($contentDTOs);
+                // Convert array back to collection for mapping
+                $contentDTOs = collect($contentDTOs);
             }
 
             return [
