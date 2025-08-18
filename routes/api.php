@@ -126,6 +126,24 @@ Route::prefix('v1')->group(function () {
                 });
             });
 
+            // Content Editor Routes (Rich Content Management)
+            Route::prefix('/{course}/editor')->group(function () {
+                Route::get('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'index']);
+                Route::post('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'store']);
+                Route::get('/content-types', [App\Http\Controllers\Api\CourseContentEditorController::class, 'contentTypes']);
+                Route::get('/stats', [App\Http\Controllers\Api\CourseContentEditorController::class, 'stats']);
+                Route::post('/upload', [App\Http\Controllers\Api\CourseContentEditorController::class, 'uploadFile']);
+                Route::post('/reorder', [App\Http\Controllers\Api\CourseContentEditorController::class, 'reorder']);
+                
+                Route::prefix('/{content}')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'show']);
+                    Route::put('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'update']);
+                    Route::delete('/', [App\Http\Controllers\Api\CourseContentEditorController::class, 'destroy']);
+                    Route::post('/duplicate', [App\Http\Controllers\Api\CourseContentEditorController::class, 'duplicate']);
+                    Route::put('/publish', [App\Http\Controllers\Api\CourseContentEditorController::class, 'publish']);
+                });
+            });
+
             // Course-Level Class Scheduling & Planning
             Route::prefix('/{course}/classes')->group(function () {
                 Route::get('/', [App\Http\Controllers\Api\ClassScheduleController::class, 'getCourseClasses']);
