@@ -87,7 +87,7 @@ abstract class BaseCacheService
     /**
      * Warm cache with default data
      */
-    protected function warmCache(string $key, callable $callback, int $ttl = null): void
+    protected function warmCache(string $key, callable $callback, ?int $ttl = null): void
     {
         Cache::remember($key, $ttl ?? $this->defaultTtl, $callback);
     }
@@ -95,7 +95,7 @@ abstract class BaseCacheService
     /**
      * Batch warm cache with multiple keys
      */
-    protected function batchWarmCache(array $items, int $ttl = null): void
+    protected function batchWarmCache(array $items, ?int $ttl = null): void
     {
         foreach ($items as $key => $callback) {
             Cache::remember($key, $ttl ?? $this->defaultTtl, $callback);
