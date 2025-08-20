@@ -172,9 +172,10 @@ class Course extends Model
      */
     public function getAllClasses(): \Illuminate\Database\Eloquent\Collection
     {
-        $classes = collect();
+        // Start with an empty Eloquent Collection
+        $classes = new \Illuminate\Database\Eloquent\Collection();
 
-        // Get direct classes
+        // Get direct classes using the relationship
         $classes = $classes->merge($this->classes);
 
         // Get classes from children recursively
