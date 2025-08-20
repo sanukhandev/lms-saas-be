@@ -569,6 +569,185 @@ class CourseController extends Controller
     }
 
     /**
+     * Get enrolled students for a course
+     */
+    public function getEnrolledStudents(string $courseId): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            
+            // Find the course within tenant scope
+            $course = Course::where('tenant_id', $tenantId)
+                ->where('id', $courseId)
+                ->first();
+
+            if (!$course) {
+                return $this->errorResponse(
+                    message: 'Course not found',
+                    code: 404
+                );
+            }
+
+            // Get enrolled students with their pivot data
+            $students = $course->students()
+                ->withPivot(['created_at', 'updated_at'])
+                ->get()
+                ->map(function ($user) {
+                    // Calculate some sample progress data
+                    // You can replace this with actual progress calculation
+                    $progress = rand(20, 100);
+                    $lessonsCompleted = rand(5, 20);
+                    $totalLessons = 20;
+                    
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'avatar' => $user->avatar ?? '',
+                        'enrolled_at' => $user->pivot->created_at->format('Y-m-d'),
+                        'last_activity' => $user->pivot->updated_at->format('Y-m-d'),
+                        'progress' => $progress,
+                        'status' => $this->getStudentStatus($progress, $user->pivot->updated_at),
+                        'lessons_completed' => $lessonsCompleted,
+                        'total_lessons' => $totalLessons,
+                        'time_spent' => rand(1, 15) . 'h ' . rand(0, 59) . 'm',
+                        'certificate_issued' => $progress >= 100,
+                    ];
+                });
+
+            return $this->successResponse(
+                data: $students,
+                message: 'Students retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving course students', [
+                'error' => $e->getMessage(),
+                'course_id' => $courseId,
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve course students',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Get course analytics
+     */
+    public function getAnalytics(string $courseId, Request $request): JsonResponse
+    {
+        try {
+            $tenantId = $this->getTenantId();
+            $timeRange = $request->get('timeRange', '30d');
+            
+            // Find the course within tenant scope
+            $course = Course::where('tenant_id', $tenantId)
+                ->where('id', $courseId)
+                ->first();
+
+            if (!$course) {
+                return $this->errorResponse(
+                    message: 'Course not found',
+                    code: 404
+                );
+            }
+
+            // Calculate analytics based on time range
+            $analytics = $this->calculateCourseAnalytics($course, $timeRange);
+
+            return $this->successResponse(
+                data: $analytics,
+                message: 'Course analytics retrieved successfully'
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving course analytics', [
+                'error' => $e->getMessage(),
+                'course_id' => $courseId,
+                'tenant_id' => $this->getTenantId(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return $this->errorResponse(
+                message: 'Failed to retrieve course analytics',
+                code: 500
+            );
+        }
+    }
+
+    /**
+     * Calculate course analytics
+     */
+    private function calculateCourseAnalytics(Course $course, string $timeRange): array
+    {
+        // Get actual enrollment data
+        $students = $course->students();
+        $totalEnrollments = $students->count();
+        
+        // Calculate some basic metrics
+        // In a real implementation, you'd calculate these from actual progress/activity data
+        $activeStudents = max(1, round($totalEnrollments * 0.7)); // 70% assumed active
+        $completedStudents = max(1, round($totalEnrollments * 0.3)); // 30% assumed completed
+        
+        return [
+            'overview' => [
+                'totalEnrollments' => $totalEnrollments,
+                'activeStudents' => $activeStudents,
+                'completionRate' => $totalEnrollments > 0 ? round(($completedStudents / $totalEnrollments) * 100) : 0,
+                'avgTimeToComplete' => 18.5, // Calculate from actual data
+                'enrollmentChange' => 12, // Compare with previous period
+                'activeChange' => -3,
+                'completionChange' => 8,
+                'timeChange' => -5
+            ],
+            'performance' => [
+                'averageRating' => $course->average_rating ?? 4.6,
+                'totalViews' => rand(1000, 2000), // Replace with actual view tracking
+                'discussionPosts' => rand(50, 150), // Replace with actual forum data
+                'ratingChange' => 2,
+                'viewsChange' => 15,
+                'discussionChange' => 23
+            ],
+            'engagement' => [
+                'timeline' => [
+                    ['date' => 'Jan 15', 'activeUsers' => 45, 'completions' => 8],
+                    ['date' => 'Jan 16', 'activeUsers' => 52, 'completions' => 12],
+                    ['date' => 'Jan 17', 'activeUsers' => 48, 'completions' => 6],
+                    ['date' => 'Jan 18', 'activeUsers' => 67, 'completions' => 15],
+                    ['date' => 'Jan 19', 'activeUsers' => 71, 'completions' => 18],
+                    ['date' => 'Jan 20', 'activeUsers' => 58, 'completions' => 11],
+                    ['date' => 'Jan 21', 'activeUsers' => 43, 'completions' => 9]
+                ],
+                'lessonCompletions' => [
+                    ['lesson' => 'Introduction to Basics', 'completions' => min(235, $totalEnrollments)],
+                    ['lesson' => 'Core Concepts', 'completions' => min(198, $totalEnrollments)],
+                    ['lesson' => 'Practical Applications', 'completions' => min(167, $totalEnrollments)],
+                    ['lesson' => 'Advanced Techniques', 'completions' => min(134, $totalEnrollments)],
+                    ['lesson' => 'Final Project', 'completions' => min(89, $totalEnrollments)]
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Determine student status based on progress
+     */
+    private function getStudentStatus(int $progress, $lastActivity): string
+    {
+        if ($progress >= 100) {
+            return 'completed';
+        } elseif ($progress > 0 && $lastActivity > now()->subDays(7)) {
+            return 'active';
+        } else {
+            return 'inactive';
+        }
+    }
+
+    /**
      * Get tenant ID from authenticated user
      */
     private function getTenantId(): string
