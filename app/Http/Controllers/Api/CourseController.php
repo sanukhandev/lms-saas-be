@@ -29,10 +29,10 @@ class CourseController extends Controller
         try {
             $tenantId = $this->getTenantId();
             $filters = $request->validated();
-            
+
             // Ensure we only get actual courses, not modules/chapters/classes
             $filters['content_type'] = 'course';
-            
+
             $page = $request->get('page', 1);
             $perPage = $request->get('per_page', 15);
 
