@@ -10,7 +10,7 @@ abstract class BaseCacheService
     protected int $defaultTtl = 3600; // 1 hour - for general data
     protected int $longTtl = 14400; // 4 hours - for rarely changing data
     protected int $veryLongTtl = 86400; // 24 hours - for very static data
-
+    
     // Standard tenant-related tags for better cache organization
     protected array $baseTenantTags = ['tenant_data'];
 
@@ -19,10 +19,9 @@ abstract class BaseCacheService
      */
     protected function clearCacheByPattern(string $pattern): void
     {
-        $redis = app('redis')->connection();
-        $keys = $redis->keys("*{$pattern}*");
+        $keys = Cache::store('redis')->getRedis()->keys("*{$pattern}*");
         if (!empty($keys)) {
-            $redis->del($keys);
+            Cache::store('redis')->getRedis()->del($keys);
         }
     }
 
@@ -87,15 +86,15 @@ abstract class BaseCacheService
     /**
      * Warm cache with default data
      */
-    protected function warmCache(string $key, callable $callback, ?int $ttl = null): void
+    protected function warmCache(string $key, callable $callback, int $ttl = null): void
     {
         Cache::remember($key, $ttl ?? $this->defaultTtl, $callback);
     }
-
+    
     /**
      * Batch warm cache with multiple keys
      */
-    protected function batchWarmCache(array $items, ?int $ttl = null): void
+    protected function batchWarmCache(array $items, int $ttl = null): void
     {
         foreach ($items as $key => $callback) {
             Cache::remember($key, $ttl ?? $this->defaultTtl, $callback);
@@ -115,6 +114,6 @@ abstract class BaseCacheService
      */
     protected function getCacheExpiration(string $key): ?int
     {
-        return app('redis')->connection()->ttl($key);
+        return Cache::store('redis')->getRedis()->ttl($key);
     }
 }
